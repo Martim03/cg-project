@@ -10,7 +10,8 @@ import { degToRad } from 'three/src/math/MathUtils.js';
 //////////////////////
 var cam1, cam2, cam3, cam4, cam5, cam6, scene, renderer;
 var currentCamera, cameraMap;
-var crane, container;
+var crane, container, p1, p2, p3, p4, p5;
+var clawHitbox, clawHV, p1Hitbox, p2Hitbox, p3Hitbox, p4Hitbox, p5Hitbox, p1HV, p2HV, p3HV, p4HV, p5HV;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -23,7 +24,7 @@ function createScene(){
     scene.add(new THREE.AxesHelper(10));
 
     createCrane(0, 0, 0);
-    createContainer( -20, 0, 40);
+    createContainer( -10, 0, 30);
     createPieces();
 }
 
@@ -34,20 +35,21 @@ function createCameras() {
     'use strict';
 
     // FOV, aspect, near, far
+    //TODO cam4 & cam5 perspective/ortogonal
     cam1 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
     cam2 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
     cam3 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
     cam4 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam5 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
+    cam5 = new THREE.OrthographicCamera(70, window.innerWidth / window.innerHeight);
 
-    cam1.position.set(70, 57, 0);
-    cam2.position.set(0, 60, 70);
-    cam3.position.set(0, 100, 0);
+    cam1.position.set(150, 50, 0);
+    cam2.position.set(0, 50, 150);
+    cam3.position.set(0, 150, 0);
     cam4.position.set(-100, 50, 100);
-    cam5.position.set(-100, 50, 100);
+    cam5.position.set(-150, 50, 150);
     
-    cam1.lookAt(0, 57, 0);
-    cam2.lookAt(0, 60, 0);
+    cam1.lookAt(0, 50, 0);
+    cam2.lookAt(0, 50, 0);
     cam3.lookAt(scene.position);
     cam4.lookAt(0, 50, 0);
     cam5.lookAt(0, 50, 0);
@@ -190,6 +192,8 @@ function addFinger(obj, x, y, z) {
     mesh.position.set(x, y, z);
     mesh.rotateZ(degToRad(180))
     obj.add(mesh);
+
+    return mesh;
 }
 
 function addCamera(obj, x, y, z) {
@@ -197,6 +201,7 @@ function addCamera(obj, x, y, z) {
 
     cam6 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
     cam6.position.set(x, y, z);
+    cam6.rotateZ(degToRad(180));
     cam6.lookAt(x, -50, z);
     obj.add(cam6)
 }
@@ -208,15 +213,23 @@ function createClaw(obj, x, y, z) {
 
     var cable = addCable(claw, 0, 15.5, 0, 27.5, 0);
     addHand(claw, 0, 0, 0);
-    addFinger(claw, 5, -4, 0);
-    addFinger(claw, -5, -4, 0);
-    addFinger(claw, 0, -4, 5);
-    addFinger(claw, 0, -4, -5);
+    var f1 = addFinger(claw, 4, -4, 0);
+    var f2 = addFinger(claw, -4, -4, 0);
+    var f3 = addFinger(claw, 0, -4, 4);
+    var f4 = addFinger(claw, 0, -4, -4);
     addCamera(claw, 0, -2, 0);
 
-    claw.userData = {cable: cable}
+    claw.userData = {open: false, close: false, f1: f1, f2: f2, f3: f3, f4: f4, min: 0, max: 45, current: 0, cable: cable}
     obj.add(claw);
     claw.position.set(x,y,z);
+
+    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var geometry = new THREE.SphereGeometry(8);
+    clawHV = new THREE.Mesh(geometry, material);
+    clawHV.position.set(0, 0, 0);
+    claw.add(clawHV);
+
+    clawHitbox = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 8);
 
     return claw;
 }
@@ -314,11 +327,11 @@ function createContainer(x, y, z) {
 function createPieces() {
     'use strict';
 
-    var p1 = new THREE.Object3D();
-    var p2 = new THREE.Object3D();
-    var p3 = new THREE.Object3D();
-    var p4 = new THREE.Object3D();
-    var p5 = new THREE.Object3D();
+    p1 = new THREE.Object3D();
+    p2 = new THREE.Object3D();
+    p3 = new THREE.Object3D();
+    p4 = new THREE.Object3D();
+    p5 = new THREE.Object3D();
 
     var material1 = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
     var geometry = new THREE.BoxGeometry(5, 5, 5);
@@ -353,11 +366,43 @@ function createPieces() {
     scene.add(p4);
     scene.add(p5);
 
-    p1.position.set(40, 0, -20);
-    p2.position.set(-60, 0, 10);
+    p1.position.set(30, 0, -10);
+    p2.position.set(-20, 0, 10);
     p3.position.set(20, 0, -40);
-    p4.position.set(-40, 0, -40);
+    p4.position.set(-40, 0, 0);
     p5.position.set(40, 0, 30);
+
+    p1Hitbox = new THREE.Sphere(p1.position, 4);
+    p2Hitbox = new THREE.Sphere(p2.position, 4);
+    p3Hitbox = new THREE.Sphere(p3.position, 4);
+    p4Hitbox = new THREE.Sphere(p4.position, 4);
+    p5Hitbox = new THREE.Sphere(p5.position, 4);
+
+    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var geometry = new THREE.SphereGeometry(4);
+    p1HV = new THREE.Mesh(geometry, material);
+    p1HV.position.set(p1.position.x, p1.position.y, p1.position.z);
+    scene.add(p1HV);
+    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var geometry = new THREE.SphereGeometry(4);
+    p2HV = new THREE.Mesh(geometry, material);
+    p2HV.position.set(p2.position.x, p2.position.y, p2.position.z);
+    scene.add(p2HV);
+    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var geometry = new THREE.SphereGeometry(4);
+    p3HV = new THREE.Mesh(geometry, material);
+    p3HV.position.set(p3.position.x, p3.position.y, p3.position.z);
+    scene.add(p3HV);
+    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var geometry = new THREE.SphereGeometry(4);
+    p4HV = new THREE.Mesh(geometry, material);
+    p4HV.position.set(p4.position.x, p4.position.y, p4.position.z);
+    scene.add(p4HV);
+    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    var geometry = new THREE.SphereGeometry(4);
+    p5HV = new THREE.Mesh(geometry, material);
+    p5HV.position.set(p5.position.x, p5.position.y, p5.position.z);
+    scene.add(p5HV);
 }
 
 //////////////////////
@@ -366,6 +411,10 @@ function createPieces() {
 function checkCollisions(){
     'use strict';
 
+    if (clawHitbox.intersectsSphere(p1Hitbox) || clawHitbox.intersectsSphere(p2Hitbox) || clawHitbox.intersectsSphere(p3Hitbox) 
+    || clawHitbox.intersectsSphere(p4Hitbox) || clawHitbox.intersectsSphere(p5Hitbox)) {
+        console.log("HIT");
+    }
 }
 
 ///////////////////////
@@ -396,6 +445,8 @@ function updateHUDText() {
                         '<p>Press S to slide the car to the back</p>' +
                         '<p>Press E to lift the claw</p>' +
                         '<p>Press D to descend the claw</p>' +
+                        '<p>Press R to open the claw</p>' +
+                        '<p>Press F to close the claw</p>' +
                         '<p>Press [1-6] to switch between cameras</p>';
 }
 
@@ -464,8 +515,26 @@ function scaleCable(oldClaw_posY) {
     crane.userData.top.userData.car.userData.claw.userData.cable.scale.y = (oldScale * (claw_posY - car_posY)) / (oldClaw_posY - car_posY)
 }
 
+function openClaw(claw) {
+    claw.userData.f1.rotateZ(-degToRad(1));
+    claw.userData.f2.rotateZ(degToRad(1));
+    claw.userData.f3.rotateX(-degToRad(1));
+    claw.userData.f4.rotateX(degToRad(1));
+}
+
+function closeClaw(claw) {
+    claw.userData.f1.rotateZ(degToRad(1));
+    claw.userData.f2.rotateZ(-degToRad(1));
+    claw.userData.f3.rotateX(degToRad(1));
+    claw.userData.f4.rotateX(-degToRad(1));
+}
+
 function animate() {
     'use strict';
+
+    var craneTop = crane.userData.top;
+    var car = craneTop.userData.car;
+    var claw = car.userData.claw;
 
     if (crane.userData.rotateLeft) {
         crane.userData.top.rotateY(degToRad(1));
@@ -473,27 +542,36 @@ function animate() {
         crane.userData.top.rotateY(-degToRad(1));
     }
 
-    if (crane.userData.top.userData.slideFront && crane.userData.top.userData.car.position.z < crane.userData.top.userData.max) {
-        crane.userData.top.userData.car.position.z += 1
-    } else if (crane.userData.top.userData.slideBack  && crane.userData.top.userData.car.position.z > crane.userData.top.userData.min) {
-        crane.userData.top.userData.car.position.z -= 1
+    if (craneTop.userData.slideFront && car.position.z <= craneTop.userData.max) {
+        car.position.z += 1
+    } else if (craneTop.userData.slideBack  && car.position.z >= craneTop.userData.min) {
+        car.position.z -= 1
     }
 
-    if (crane.userData.top.userData.car.userData.up && 
-        crane.userData.top.userData.car.userData.claw.position.y < crane.userData.top.userData.car.userData.max) {
-            var oldPosition = crane.userData.top.userData.car.userData.claw.position.y;
-            crane.userData.top.userData.car.userData.claw.position.y += 1;
-            scaleCable(oldPosition);
+    if (car.userData.up && claw.position.y <= car.userData.max) {
+        var oldPosition = claw.position.y;
+        claw.position.y += 1;
+        scaleCable(oldPosition);
+    } else if (car.userData.down && claw.position.y >= car.userData.min) {
+        var oldPosition = claw.position.y;
+        claw.position.y -= 1;
+        scaleCable(oldPosition);
+    }
 
-        } else if (crane.userData.top.userData.car.userData.down && 
-        crane.userData.top.userData.car.userData.claw.position.y > crane.userData.top.userData.car.userData.min) {
-            var oldPosition = crane.userData.top.userData.car.userData.claw.position.y;
-            crane.userData.top.userData.car.userData.claw.position.y -= 1;
-            scaleCable(oldPosition);
-        }
+    if (claw.userData.open && claw.userData.current <= claw.userData.max) {
+        openClaw(claw);
+        claw.userData.current += 1;
+    } else if (claw.userData.close && claw.userData.current >= claw.userData.min) {
+        closeClaw(claw);
+        claw.userData.current -= 1;
+    }
 
+    clawHitbox.center = claw.getWorldPosition(new THREE.Vector3);
+    clawHV.center = claw.getWorldPosition(new THREE.Vector3);
+    clawHV.visible = false;
+
+    checkCollisions();
     render();
-
     requestAnimationFrame(animate);
 }
 
@@ -506,6 +584,7 @@ function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     if(window.innerHeight > 0 && window.innerWidth > 0) {
+        //TODO
         //camera.aspect = renderer.getSize().width/renderer.getSize().height;
         //camera.updateProjectionMatrix;
     }
@@ -556,6 +635,14 @@ function onKeyDown(e) {
         case 'd':
             crane.userData.top.userData.car.userData.down = true;
             break;
+        case 'R':
+        case 'r':
+            crane.userData.top.userData.car.userData.claw.userData.open = true;
+            break;
+        case 'F':
+        case 'f':
+            crane.userData.top.userData.car.userData.claw.userData.close = true;
+            break;
     }
 }
 
@@ -589,6 +676,14 @@ function onKeyUp(e){
         case 'D':
         case 'd':
             crane.userData.top.userData.car.userData.down = false;
+            break;
+        case 'R':
+        case 'r':
+            crane.userData.top.userData.car.userData.claw.userData.open = false;
+            break;
+        case 'F':
+        case 'f':
+            crane.userData.top.userData.car.userData.claw.userData.close = false;
             break;
     }
 }
