@@ -4,7 +4,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 import * as Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { degToRad } from 'three/src/math/MathUtils.js';
-import { AsciiEffect, ThreeMFLoader } from 'three/examples/jsm/Addons.js';
+import { AsciiEffect, ConvexObjectBreaker, ThreeMFLoader } from 'three/examples/jsm/Addons.js';
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -12,6 +12,13 @@ import { AsciiEffect, ThreeMFLoader } from 'three/examples/jsm/Addons.js';
 var cam1, cam2, cam3, cam4, cam5, cam6, scene, renderer;
 var currentCamera, cameraMap;
 var crane, container, p1, p2, p3, p4, p5;
+var inContainer = {
+    "1": false,
+    "2": false,
+    "3": false,
+    "4": false,
+    "5": false
+};
 var clawHitbox, p1Hitbox, p2Hitbox, p3Hitbox, p4Hitbox, p5Hitbox;
 var craneMaterial, cableMaterial, clawMaterial, containerMaterial, pieceMaterial;
 
@@ -22,8 +29,6 @@ function createScene(){
     'use strict';
 
     scene = new THREE.Scene();
-
-    //scene.add(new THREE.AxesHelper(10));
 
     createCrane(0, 0, 0);
     createContainer( -10, 0, 30);
@@ -183,7 +188,7 @@ function createClaw(obj, x, y, z) {
     var f4 = addFinger(claw, 0, -4, -4);
     cam6 = createPrespectiveCamera(new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, -50, 0), 70, claw);
 
-    claw.userData = {open: false, close: false, f1: f1, f2: f2, f3: f3, f4: f4, min: 0, max: 45, current: 0, cable: cable}
+    claw.userData = {open: false, close: false, f1: f1, f2: f2, f3: f3, f4: f4, min: 0, max: 45, current: 0, cable: cable, piece: null}
     obj.add(claw);
     claw.position.set(x,y,z);
 
@@ -246,7 +251,7 @@ function createCrane(x, y, z) {
     addTower(crane, 0, 27.5, 0);
     var craneTop = createCraneTop(crane, 0, 55.5, 0);
 
-    crane.userData = { rotateLeft: false, rotateRight: false, top: craneTop};
+    crane.userData = { rotateLeft: false, rotateRight: false, top: craneTop, playingAnimation: false};
     scene.add(crane);
     crane.position.set(x,y,z);
 }
@@ -323,16 +328,23 @@ function createPieces() {
 function checkCollisions(){
     'use strict';
 
-    if (clawHitbox.intersectsSphere(p1Hitbox)){
+    if (crane.userData.playingAnimation) return;
+
+    if (clawHitbox.intersectsSphere(p1Hitbox) && !inContainer["1"]){
         handleCollisions(p1);
-    } else if (clawHitbox.intersectsSphere(p2Hitbox)) {
+        inContainer["1"] = true;
+    } else if (clawHitbox.intersectsSphere(p2Hitbox) && !inContainer["2"]) {
         handleCollisions(p2);
-    } else if (clawHitbox.intersectsSphere(p3Hitbox)) {
+        inContainer["2"] = true;
+    } else if (clawHitbox.intersectsSphere(p3Hitbox) && !inContainer["3"]) {
         handleCollisions(p3);
-    } else if (clawHitbox.intersectsSphere(p4Hitbox)) {
+        inContainer["3"] = true;
+    } else if (clawHitbox.intersectsSphere(p4Hitbox) && !inContainer["4"]) {
         handleCollisions(p4);
-    } else if (clawHitbox.intersectsSphere(p5Hitbox)) {
+        inContainer["4"] = true;
+    } else if (clawHitbox.intersectsSphere(p5Hitbox) && !inContainer["5"]) {
         handleCollisions(p5);
+        inContainer["5"] = true;
     }
 }
 
@@ -341,13 +353,102 @@ function checkCollisions(){
 ///////////////////////
 function handleCollisions(piece){
     'use strict';
-
     console.log("HIT: " + piece);
+
+    crane.userData.playingAnimation = true;
+    crane.userData.top.userData.car.userData.claw.add(piece);
+    crane.userData.top.userData.car.userData.claw.userData.piece = piece;
+    piece.position.set(0, -6, 0);
 }
 
 ////////////
 /* UPDATE */
 ////////////
+var phases = {
+    "1": true,
+    "2": false,
+    "3": false,
+    "4": false,
+    "5": false,
+    "6": false
+};
+
+function pickUp(claw) {
+    claw.userData.open = true;
+
+    if (claw.userData.current == claw.userData.max) {
+        claw.userData.open = false;
+        phases["1"] = false;
+        phases["2"] = true;
+    }
+}
+
+function lift(car, claw) {
+    car.userData.up = true;
+
+    if (claw.position.y == car.userData.max) {
+        car.userData.up = false;
+        phases["2"] = false;
+        phases["3"] = true;
+    }
+}
+
+function rotate(claw) {
+    crane.userData.rotateLeft = true;
+
+    var clawPos = claw.getWorldPosition(new THREE.Vector3());
+    var slope = (crane.position.z - container.position.z) / (crane.position.x - container.position.x);
+    if (Math.abs(clawPos.z - slope*clawPos.x) < 2 && clawPos.z > 0) {
+        crane.userData.rotateLeft = false;
+        phases["3"] = false;
+        phases["4"] = true;
+    }
+}
+
+function slide(craneTop, claw) {
+    var clawPos = claw.getWorldPosition(new THREE.Vector3());
+    var dist1 = crane.position.distanceTo(container.position);
+    var dist2 = new THREE.Vector3(crane.position.x, clawPos.y, crane.position.z).distanceTo(clawPos);
+    if (dist1 < dist2) {
+        craneTop.userData.slideBack = true;
+    } else {
+        craneTop.userData.slideFront = true;
+    }
+
+    if (Math.abs(dist1 - dist2) < 1) {
+        craneTop.userData.slideBack = false;
+        craneTop.userData.slideFront = false;
+        phases["4"] = false;
+        phases["5"] = true;
+    }
+}
+
+function descend(claw, car) {
+    car.userData.down = true;
+
+    if (claw.position.y == car.userData.min) {
+        car.userData.down = false;
+        phases["5"] = false;
+        phases["6"] = true;
+    }
+}
+
+function drop(claw) {
+    claw.userData.close = true;
+
+    if (claw.userData.current == claw.userData.min) {
+        claw.userData.close = false;
+
+        scene.add(claw.userData.piece);
+        claw.userData.piece.position.set(container.position.x, 0, container.position.z);
+        claw.userData.piece = null;
+
+        phases["6"] = false;
+        phases["1"] = true;
+        crane.userData.playingAnimation = false;
+    }
+}
+
 function update(){
     'use strict';
 
@@ -357,6 +458,22 @@ function update(){
 
     clawHitbox.center = claw.getWorldPosition(new THREE.Vector3);
 
+    if (crane.userData.playingAnimation) {
+        if (phases["1"]) {
+            pickUp(claw);
+        } else if (phases["2"]) {
+            lift(car, claw);
+        } else if (phases["3"]) {
+            rotate(claw);
+        } else if (phases["4"]) {
+            slide(craneTop, claw);
+        } else if (phases["5"]) {
+            descend(claw, car)
+        } else if (phases["6"]) {
+            drop(claw);
+        } 
+    }
+    
     checkCollisions();
 }
 
@@ -515,15 +632,13 @@ function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     function updateCamera(cam) {
-        var aspect = window.innerWidth/window.innerHeight;
-
         if (cam.isOrthographicCamera) {
             cam.left = window.innerWidth / - 12;
             cam.right = window.innerWidth / 12;
             cam.top = window.innerHeight / 12;
             cam.bottom = window.innerHeight / - 12;
         } else {
-            cam.aspect = aspect;
+            cam.aspect = window.innerWidth/window.innerHeight;;
         }
 
         cam.updateProjectionMatrix();
@@ -545,17 +660,31 @@ function onResize() {
 function onKeyDown(e) {
     'use strict';
 
-    console.log(e.key);
-
-    if (e.key in cameraMap) {
-        currentCamera = cameraMap[e.key];
-    }
+    //TODO REMOVE
+    if (crane.userData.playingAnimation) return;
 
     switch (e.key) {
+        case '1':
+            currentCamera = cameraMap['1'];
+            break;
+        case '2':
+            currentCamera = cameraMap['2'];
+            break;
+        case '3':
+            currentCamera = cameraMap['3'];
+            break;
+        case '4':
+            currentCamera = cameraMap['4'];
+            break;
+        case '5':
+            currentCamera = cameraMap['5'];
+            break;
+        case '6':
+            currentCamera = cameraMap['6'];
+            break;
         case '7':
             toogleWireframe();
             break;
-
         case 'Q':
         case 'q':
             crane.userData.rotateLeft = true;
