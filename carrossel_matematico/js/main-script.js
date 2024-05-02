@@ -10,7 +10,6 @@ import { degToRad } from 'three/src/math/MathUtils.js';
 //////////////////////
 var camera, scene, renderer;
 var ring1, ring2, ring3, cylinder, skydome;
-var ringMovement = { 1: 0, 2: 0, 3: 0 };
 var ambientLight, directionalLight, pointLight;
 
 /////////////////////
@@ -23,9 +22,8 @@ function createScene(){
 
     scene.add(new THREE.AxesHelper(10));
 
-    createCylinder(0, 0, 0);
-    createRings();
-    createSkyDome();
+    createCarousell(0, 0, 0);
+    createSkyDome(0, 0, 0);
 }
 
 //////////////////////
@@ -67,13 +65,6 @@ function addPointLight() {
 ////////////////////////
 /* CREATE OBJECT3D(S) */
 ////////////////////////
-
-function createRings() {
-    ring1 = createRing(5, 10, 0xffffff, 5);
-    ring2 = createRing(10, 15, 0xffd700, 5);
-    ring3 = createRing(15, 20, 0xff8c00, 5);
-}
-
 function createCylinder(x, y, z) {
     'use strict';
 
@@ -84,71 +75,64 @@ function createCylinder(x, y, z) {
     scene.add(cylinder);
 }
 
-function createRing(innerRadius, outerRadius, color, height) {
+function createRing(x, y, z, innerRadius, outerRadius, color, height) {
     'use strict';
     var shape = new THREE.Shape();
-    shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false); // Outer circle
+    shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
     var hole = new THREE.Path();
-    hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true); // Inner circle
+    hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
     shape.holes.push(hole);
 
-    // Extrude settings
     var extrudeSettings = {
-        steps: 2, // Number of steps along the extrusion path (minimal since we're only pushing out a simple shape)
-        depth: height, // The depth (thickness) of the extrusion
+        steps: 2, // Number of steps along the extrusion path
+        depth: height, // The depth of the extrusion
         bevelEnabled: false, // Disable beveling to maintain a sharp edge
     };
 
-    // Create the geometry by extruding the shape
     var geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
 
-    // Create the material
     var material = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide });
 
-    // Create the mesh using the geometry and material
     const ring = new THREE.Mesh(geometry, material);
 
-    ring.rotation.x = Math.PI / 2; // Rotate 90 degrees around the X-axis to stand up
-    // Add the mesh to the scene
+    ring.rotation.x = degToRad(90);
+    ring.position.set(x, y, z);
+    ring.userData = {up: false, down: false, step: 0.5, min: 0, max: 40};
     scene.add(ring);
 
     return ring;
 }
 
 
-function createSkyDome() {
+function createRings(x, y, z) {
+    ring1 = createRing(x, y, z, 5, 10, 0xffffff, 5);
+    ring2 = createRing(x, y, z, 10, 15, 0xffd700, 5);
+    ring3 = createRing(x, y, z,15, 20, 0xff8c00, 5);
+}
+
+function createCarousell(x, y, z) {
+    createCylinder(x, y, z);
+    createRings(0, 0, 0);
+}
+
+function createSkyDome(x, y, z) {
     'use strict';
-    // Load the texture
+
     const loader = new THREE.TextureLoader();
     loader.setCrossOrigin('anonymous');
-    const texture = loader.load('/home/lourenco/projects/ist/cg/cg-project/carrossel_matematico/js/frame_louco.png', function (loadedTexture) {
-        scene.background = loadedTexture; // or apply to your object here
-        console.log("Texture loaded successfully");
-    }, undefined, function (error) {
-        console.error("Error while loading texture: ", error);
-    });  // Replace with the path to your texture file
+    const texture = loader.load('./js/frame_louco.png');
 
-    // Adjust the texture settings if necessary
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(1, 1);  // You can adjust repeat settings to get the desired effect
-
-    // Create the geometry and material
-    const geometry = new THREE.SphereGeometry(50, 50, 40);  // Size large enough to act as a sky
+    const geometry = new THREE.SphereGeometry(50, 50, 40);
     const material = new THREE.MeshBasicMaterial({
         map: texture,
         side: THREE.BackSide  // Render the inside of the sphere
     });
 
-    // Create the mesh
     skydome = new THREE.Mesh(geometry, material);
-    skydome.position.set(0, 0, 0);  // Center it over your scene
+    skydome.position.set(x, y, z);
 
-    // Add the skydome to the scene
     scene.add(skydome);
 }
-
-
 
 //////////////////////
 /* CHECK COLLISIONS */
@@ -169,9 +153,12 @@ function handleCollisions(){
 ////////////
 /* UPDATE */
 ////////////
+function updateRings() {
+    cylinder.rotation.y += 10;
+}
+
 function update(){
     'use strict';
-
 }
 
 /////////////
@@ -179,6 +166,7 @@ function update(){
 /////////////
 function render() {
     'use strict';
+
     renderer.render(scene, camera);
 }
 
@@ -226,21 +214,32 @@ function onSessionEnd() {
 /////////////////////
 /* ANIMATION CYCLE */
 /////////////////////
-
-function updateRings() {
-    ring1.position.y += ringMovement[1];
-    ring2.position.y += ringMovement[2];
-    ring3.position.y += ringMovement[3];
-    cylinder.rotation.y += 10; // Rotação constante do cilindro central
-}
-
 function animate() {
     'use strict';
+
+    update();
+
+    if (ring1.userData.up && ring1.position.y <= ring1.userData.max) {
+        ring1.position.y += ring1.userData.step;
+    } else if (ring1.userData.down && ring1.position.y >= ring1.userData.min) {
+        ring1.position.y -= ring1.userData.step;
+    }
+
+    if (ring2.userData.up && ring2.position.y <= ring2.userData.max) {
+        ring2.position.y += ring2.userData.step;
+    } else if (ring2.userData.down && ring2.position.y >= ring2.userData.min) {
+        ring2.position.y -= ring2.userData.step;
+    }
+
+    if (ring3.userData.up && ring3.position.y <= ring3.userData.max) {
+        ring3.position.y += ring3.userData.step;
+    } else if (ring3.userData.down && ring3.position.y >= ring3.userData.min) {
+        ring3.position.y -= ring3.userData.step;
+    }
 
     renderer.setAnimationLoop(render);
 
     requestAnimationFrame(animate);
-    updateRings();
     render();
 }
 
@@ -259,24 +258,25 @@ function onResize() {
 ///////////////////////
 function onKeyDown(e) {
     'use strict';
-    switch (e.keyCode) {
-        case 49: // '1'
-            ringMovement[1] = 0.5;
+
+    switch (e.key) {
+        case "1":
+            ring1.userData.up = true;
             break;
-        case 50: // '2'
-            ringMovement[2] = 0.5;
+        case "2":
+            ring2.userData.up = true;
             break;
-        case 51: // '3'
-            ringMovement[3] = 0.5;
+        case "3":
+            ring3.userData.up = true;
             break;
-        case 52: // '4'
-            ringMovement[1] = -0.5;
+        case "4":
+            ring1.userData.down = true;
             break;
-        case 53: // '5'
-            ringMovement[2] = -0.5;
+        case "5":
+            ring2.userData.down = true;
             break;
-        case 54: // '6'
-            ringMovement[3] = -0.5;
+        case "6":
+            ring3.userData.down = true;
             break;
         }
 }
@@ -287,26 +287,26 @@ function onKeyDown(e) {
 function onKeyUp(e){
     'use strict';
 
-    switch (e.keyCode) {
-        case 49: // '1'
-            ringMovement[1] = 0;
+    switch (e.key) {
+        case "1":
+            ring1.userData.up = false;
             break;
-        case 50: // '2'
-            ringMovement[2] = 0;
+        case "2":
+            ring2.userData.up = false;
             break;
-        case 51: // '3'
-            ringMovement[3] = 0;
+        case "3":
+            ring3.userData.up = false;
             break;
-        case 52: // '4'
-            ringMovement[1] = 0;
+        case "4":
+            ring1.userData.down = false;
             break;
-        case 53: // '5'
-            ringMovement[2] = 0;
+        case "5":
+            ring2.userData.down = false;
             break;
-        case 54: // '6'
-            ringMovement[3] = 0;
+        case "6":
+            ring3.userData.down = false;
             break;
-    }
+        }
 }
 
 init();
