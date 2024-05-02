@@ -21,7 +21,7 @@ function createScene(){
 
     scene = new THREE.Scene();
 
-    scene.add(new THREE.AxesHelper(10));
+    //scene.add(new THREE.AxesHelper(10));
 
     createCrane(0, 0, 0);
     createContainer( -10, 0, 30);
@@ -35,7 +35,7 @@ function createCameras() {
     'use strict';
 
     // FOV, aspect, near, far
-    //TODO cam4 & cam5 perspective/ortogonal
+    //TODO cam5 Orthogonal
     cam1 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
     cam2 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
     cam3 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
@@ -201,7 +201,6 @@ function addCamera(obj, x, y, z) {
 
     cam6 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
     cam6.position.set(x, y, z);
-    cam6.rotateZ(degToRad(180));
     cam6.lookAt(x, -50, z);
     obj.add(cam6)
 }
@@ -411,18 +410,26 @@ function createPieces() {
 function checkCollisions(){
     'use strict';
 
-    if (clawHitbox.intersectsSphere(p1Hitbox) || clawHitbox.intersectsSphere(p2Hitbox) || clawHitbox.intersectsSphere(p3Hitbox) 
-    || clawHitbox.intersectsSphere(p4Hitbox) || clawHitbox.intersectsSphere(p5Hitbox)) {
-        console.log("HIT");
+    if (clawHitbox.intersectsSphere(p1Hitbox)){
+        handleCollisions(p1);
+    } else if (clawHitbox.intersectsSphere(p2Hitbox)) {
+        handleCollisions(p2);
+    } else if (clawHitbox.intersectsSphere(p3Hitbox)) {
+        handleCollisions(p3);
+    } else if (clawHitbox.intersectsSphere(p4Hitbox)) {
+        handleCollisions(p4);
+    } else if (clawHitbox.intersectsSphere(p5Hitbox)) {
+        handleCollisions(p5);
     }
 }
 
 ///////////////////////
 /* HANDLE COLLISIONS */
 ///////////////////////
-function handleCollisions(){
+function handleCollisions(piece){
     'use strict';
 
+    console.log("HIT: " + piece);
 }
 
 ////////////
@@ -431,6 +438,15 @@ function handleCollisions(){
 function update(){
     'use strict';
 
+    var craneTop = crane.userData.top;
+    var car = craneTop.userData.car;
+    var claw = car.userData.claw;
+
+    clawHitbox.center = claw.getWorldPosition(new THREE.Vector3);
+    clawHV.center = claw.getWorldPosition(new THREE.Vector3);
+    //clawHV.visible = false;
+
+    checkCollisions();
 }
 
 /////////////
@@ -532,6 +548,8 @@ function closeClaw(claw) {
 function animate() {
     'use strict';
 
+    update();
+
     var craneTop = crane.userData.top;
     var car = craneTop.userData.car;
     var claw = car.userData.claw;
@@ -566,11 +584,6 @@ function animate() {
         claw.userData.current -= 1;
     }
 
-    clawHitbox.center = claw.getWorldPosition(new THREE.Vector3);
-    clawHV.center = claw.getWorldPosition(new THREE.Vector3);
-    clawHV.visible = false;
-
-    checkCollisions();
     render();
     requestAnimationFrame(animate);
 }
@@ -689,6 +702,7 @@ function onKeyUp(e){
 }
 
 init();
+update();
 animate();
 
 console.log("STARTING...")
