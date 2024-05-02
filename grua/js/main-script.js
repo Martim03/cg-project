@@ -13,6 +13,7 @@ var cam1, cam2, cam3, cam4, cam5, cam6, scene, renderer;
 var currentCamera, cameraMap;
 var crane, container, p1, p2, p3, p4, p5;
 var clawHitbox, p1Hitbox, p2Hitbox, p3Hitbox, p4Hitbox, p5Hitbox;
+var craneMaterial, cableMaterial, clawMaterial, containerMaterial, pieceMaterial;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -37,7 +38,7 @@ function createPrespectiveCamera(position, lookAt, FOV, parent) {
     cam.position.set(position.x, position.y, position.z);
     cam.lookAt(lookAt.x, lookAt.y, lookAt.z);
     parent.add(cam)
-
+    
     return cam;
 }
 
@@ -89,65 +90,57 @@ function createObject(geom, matr, position, parent) {
 function addBase(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(10, 5, 10);
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addTower(obj, x, y, z) {
     'use strict';
     
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(5, 50, 5);
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCabin(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(6, 6, 6);
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addSpearHolder(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.ConeGeometry( 4, 20, 4 );
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj).rotateY(degToRad(45));
+    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj).rotateY(degToRad(45));
 }
 
 function addFrontSpear(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(6, 5, 50);
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addBackSpear(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(6, 5, -15);
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCounterWeight(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(3, 10, -6);
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCable(obj, x, y, z, size, angle) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.CylinderGeometry( 0.1, 0.1, size);
-    var obj = createObject(geometry, material, new THREE.Vector3(x, y, z), obj).rotateX(degToRad(angle));
+    var obj = createObject(geometry, cableMaterial, new THREE.Vector3(x, y, z), obj).rotateX(degToRad(angle));
     
     return obj;
 }
@@ -155,25 +148,22 @@ function addCable(obj, x, y, z, size, angle) {
 function addCar(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(3, 2, 3);
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addHand(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.CylinderGeometry( 8, 8, 4, 10); 
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addFinger(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.ConeGeometry( 3, 8, 4 );
-    var obj = createObject(geometry, material, new THREE.Vector3(x, y, z), obj).rotateZ(degToRad(180));
+    var obj = createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj).rotateZ(degToRad(180));
 
     return obj;
 }
@@ -182,6 +172,8 @@ function createClaw(obj, x, y, z) {
     'use strict';
 
     var claw = new THREE.Object3D();
+    
+    clawMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true });
 
     var cable = addCable(claw, 0, 15.5, 0, 27.5, 0);
     addHand(claw, 0, 0, 0);
@@ -247,6 +239,9 @@ function createCrane(x, y, z) {
     
     crane = new THREE.Object3D();
 
+    craneMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+    cableMaterial = new THREE.MeshBasicMaterial({ color: 0x770000, wireframe: true });
+
     addBase(crane, 0, 0, 0);
     addTower(crane, 0, 27.5, 0);
     var craneTop = createCraneTop(crane, 0, 55.5, 0);
@@ -259,17 +254,15 @@ function createCrane(x, y, z) {
 function addFloor(obj, x, y, z) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
     var geometry = new THREE.BoxGeometry(20, 1, 20);
-    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    createObject(geometry, containerMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addWall(obj, x, y, z, rotate) {
     'use strict';
 
-    var material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
     var geometry = new THREE.BoxGeometry(1, 10, 20);
-    var wall = createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    var wall = createObject(geometry, containerMaterial, new THREE.Vector3(x, y, z), obj);
     if (rotate) { wall.rotateY(degToRad(90)); }
 }
 
@@ -278,6 +271,8 @@ function createContainer(x, y, z) {
 
     container = new THREE.Object3D();
 
+    containerMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
+
     addFloor(container, 0, -5, 0);
     addWall(container, 10, 0, 0, false);
     addWall(container, -10, 0, 0, false);
@@ -285,33 +280,29 @@ function createContainer(x, y, z) {
     addWall(container, 0, 0, -10, true);
 
     scene.add(container);
-
     container.position.set(x,y,z);
 }
 
 function createPieces() {
     'use strict';
 
-    var material1 = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
+    pieceMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+
     var geometry = new THREE.BoxGeometry(5, 5, 5);
-    p1 = createObject(geometry, material1, new THREE.Vector3(30, 0, -10), scene);
+    p1 = createObject(geometry, pieceMaterial, new THREE.Vector3(30, 0, -10), scene);
 
-    var material2 = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
     var geometry = new THREE.DodecahedronGeometry(4);
-    p2 = createObject(geometry, material2, new THREE.Vector3(-20, 0, 10), scene);
+    p2 = createObject(geometry, pieceMaterial, new THREE.Vector3(-20, 0, 10), scene);
 
-    var material3 = new THREE.MeshBasicMaterial({ color: 0xf00f00, wireframe: true });
     var geometry = new THREE.IcosahedronGeometry(4);
-    p3 = createObject(geometry, material3, new THREE.Vector3(20, 0, -40), scene);
+    p3 = createObject(geometry, pieceMaterial, new THREE.Vector3(20, 0, -40), scene);
 
-    var material4 = new THREE.MeshBasicMaterial({ color: 0xf0000f, wireframe: true });
     var geometry = new THREE.TorusGeometry(4, 0.5);
-    p4 = createObject(geometry, material4, new THREE.Vector3(-40, 0, 0), scene);
+    p4 = createObject(geometry, pieceMaterial, new THREE.Vector3(-40, 0, 0), scene);
     p4.rotateX(degToRad(90));
 
-    var material5 = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true });
     var geometry = new THREE.TorusKnotGeometry(3, 0.7);
-    p5 = createObject(geometry, material5, new THREE.Vector3(40, 0, 30), scene);
+    p5 = createObject(geometry, pieceMaterial, new THREE.Vector3(40, 0, 30), scene);
 
     p1Hitbox = new THREE.Sphere(p1.position, 4);
     p2Hitbox = new THREE.Sphere(p2.position, 4);
@@ -372,6 +363,14 @@ function update(){
 /////////////
 /* DISPLAY */
 /////////////
+function toogleWireframe() {
+    craneMaterial.wireframe = !craneMaterial.wireframe
+    cableMaterial.wireframe = !cableMaterial.wireframe
+    clawMaterial.wireframe = !clawMaterial.wireframe
+    containerMaterial.wireframe = !containerMaterial.wireframe
+    pieceMaterial.wireframe = !pieceMaterial.wireframe
+}
+
 function updateHUDText() {
     var hudText = document.getElementById('hudText');
     hudText.innerHTML = '<p>Press 7 to toggle wireframe mode</p>' +
@@ -554,11 +553,7 @@ function onKeyDown(e) {
 
     switch (e.key) {
         case '7':
-            scene.traverse(function (node) {
-                if (node instanceof THREE.Mesh) {
-                    node.material.wireframe = !node.material.wireframe;
-                }
-            });
+            toogleWireframe();
             break;
 
         case 'Q':
