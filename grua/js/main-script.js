@@ -4,6 +4,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 import * as Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { degToRad } from 'three/src/math/MathUtils.js';
+import { AsciiEffect, ThreeMFLoader } from 'three/examples/jsm/Addons.js';
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -11,7 +12,7 @@ import { degToRad } from 'three/src/math/MathUtils.js';
 var cam1, cam2, cam3, cam4, cam5, cam6, scene, renderer;
 var currentCamera, cameraMap;
 var crane, container, p1, p2, p3, p4, p5;
-var clawHitbox, clawHV, p1Hitbox, p2Hitbox, p3Hitbox, p4Hitbox, p5Hitbox, p1HV, p2HV, p3HV, p4HV, p5HV;
+var clawHitbox, p1Hitbox, p2Hitbox, p3Hitbox, p4Hitbox, p5Hitbox;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -31,34 +32,32 @@ function createScene(){
 //////////////////////
 /* CREATE CAMERA(S) */
 //////////////////////
+function createPrespectiveCamera(position, lookAt, FOV, parent) {
+    var cam = new THREE.PerspectiveCamera(FOV, window.innerWidth / window.innerHeight);
+    cam.position.set(position.x, position.y, position.z);
+    cam.lookAt(lookAt.x, lookAt.y, lookAt.z);
+    parent.add(cam)
+
+    return cam;
+}
+
+function createOrthogonalCamera(position, lookAt, parent) {
+    var cam = new THREE.OrthographicCamera( window.innerWidth / - 12, window.innerWidth / 12,  
+    window.innerHeight / 12, window.innerHeight / - 12, 1, 1000 );
+    cam.position.set(position.x, position.y, position.z);
+    cam.lookAt(lookAt.x, lookAt.y, lookAt.z);
+    parent.add(cam)
+
+    return cam;
+}
+
 function createCameras() {
     'use strict';
-
-    // FOV, aspect, near, far
-    //TODO cam5 Orthogonal
-    cam1 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam2 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam3 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam4 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam5 = new THREE.OrthographicCamera(70, window.innerWidth / window.innerHeight);
-
-    cam1.position.set(150, 50, 0);
-    cam2.position.set(0, 50, 150);
-    cam3.position.set(0, 150, 0);
-    cam4.position.set(-100, 50, 100);
-    cam5.position.set(-150, 50, 150);
-    
-    cam1.lookAt(0, 50, 0);
-    cam2.lookAt(0, 50, 0);
-    cam3.lookAt(scene.position);
-    cam4.lookAt(0, 50, 0);
-    cam5.lookAt(0, 50, 0);
-
-    scene.add(cam1);
-    scene.add(cam2);
-    scene.add(cam3);
-    scene.add(cam4);
-    scene.add(cam5);
+    cam1 = createOrthogonalCamera(new THREE.Vector3(150, 50, 0), new THREE.Vector3(0, 50, 0), scene);
+    cam2 = createOrthogonalCamera(new THREE.Vector3(0, 50, 150), new THREE.Vector3(0, 50, 0), scene);
+    cam3 = createOrthogonalCamera(new THREE.Vector3(0, 150, 0), scene.position, scene);
+    cam4 = createPrespectiveCamera(new THREE.Vector3(-100, 50, 100), new THREE.Vector3(0, 50, 0), 70, scene);
+    cam5 = createOrthogonalCamera(new THREE.Vector3(-150, 50, 150), new THREE.Vector3(0, 50, 0), scene);
     currentCamera = cam1;
 
     cameraMap = {
@@ -71,7 +70,6 @@ function createCameras() {
     };
 }
 
-
 /////////////////////
 /* CREATE LIGHT(S) */
 /////////////////////
@@ -79,14 +77,21 @@ function createCameras() {
 ////////////////////////
 /* CREATE OBJECT3D(S) */
 ////////////////////////
+function createObject(geom, matr, position, parent) {
+    var obj = new THREE.Object3D;
+    obj.add(new THREE.Mesh(geom, matr))
+    parent.add(obj);
+    obj.position.set(position.x, position.y, position.z);
+    
+    return obj;
+}
+
 function addBase(obj, x, y, z) {
     'use strict';
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(10, 5, 10);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
 }
 
 function addTower(obj, x, y, z) {
@@ -94,9 +99,7 @@ function addTower(obj, x, y, z) {
     
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(5, 50, 5);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCabin(obj, x, y, z) {
@@ -104,9 +107,7 @@ function addCabin(obj, x, y, z) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(6, 6, 6);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
 }
 
 function addSpearHolder(obj, x, y, z) {
@@ -114,10 +115,7 @@ function addSpearHolder(obj, x, y, z) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.ConeGeometry( 4, 20, 4 );
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    mesh.rotateY(degToRad(45));
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj).rotateY(degToRad(45));
 }
 
 function addFrontSpear(obj, x, y, z) {
@@ -125,9 +123,7 @@ function addFrontSpear(obj, x, y, z) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(6, 5, 50);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
 }
 
 function addBackSpear(obj, x, y, z) {
@@ -135,9 +131,7 @@ function addBackSpear(obj, x, y, z) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(6, 5, -15);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCounterWeight(obj, x, y, z) {
@@ -145,9 +139,7 @@ function addCounterWeight(obj, x, y, z) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(3, 10, -6);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCable(obj, x, y, z, size, angle) {
@@ -155,12 +147,9 @@ function addCable(obj, x, y, z, size, angle) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.CylinderGeometry( 0.1, 0.1, size);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    mesh.rotateX(degToRad(angle));
-    obj.add(mesh);
-
-    return mesh;
+    var obj = createObject(geometry, material, new THREE.Vector3(x, y, z), obj).rotateX(degToRad(angle));
+    
+    return obj;
 }
 
 function addCar(obj, x, y, z) {
@@ -168,9 +157,7 @@ function addCar(obj, x, y, z) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.BoxGeometry(3, 2, 3);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
 }
 
 function addHand(obj, x, y, z) {
@@ -178,9 +165,7 @@ function addHand(obj, x, y, z) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.CylinderGeometry( 8, 8, 4, 10); 
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
 }
 
 function addFinger(obj, x, y, z) {
@@ -188,21 +173,9 @@ function addFinger(obj, x, y, z) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     var geometry = new THREE.ConeGeometry( 3, 8, 4 );
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    mesh.rotateZ(degToRad(180))
-    obj.add(mesh);
+    var obj = createObject(geometry, material, new THREE.Vector3(x, y, z), obj).rotateZ(degToRad(180));
 
-    return mesh;
-}
-
-function addCamera(obj, x, y, z) {
-    'use strict';
-
-    cam6 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam6.position.set(x, y, z);
-    cam6.lookAt(x, -50, z);
-    obj.add(cam6)
+    return obj;
 }
 
 function createClaw(obj, x, y, z) {
@@ -216,17 +189,17 @@ function createClaw(obj, x, y, z) {
     var f2 = addFinger(claw, -4, -4, 0);
     var f3 = addFinger(claw, 0, -4, 4);
     var f4 = addFinger(claw, 0, -4, -4);
-    addCamera(claw, 0, -2, 0);
+    cam6 = createPrespectiveCamera(new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, -50, 0), 70, claw);
 
     claw.userData = {open: false, close: false, f1: f1, f2: f2, f3: f3, f4: f4, min: 0, max: 45, current: 0, cable: cable}
     obj.add(claw);
     claw.position.set(x,y,z);
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    /*var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
     var geometry = new THREE.SphereGeometry(8);
     clawHV = new THREE.Mesh(geometry, material);
     clawHV.position.set(0, 0, 0);
-    claw.add(clawHV);
+    claw.add(clawHV);*/
 
     clawHitbox = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 8);
 
@@ -239,7 +212,6 @@ function createCar(obj, x, y, z) {
     var car = new THREE.Object3D();
 
     addCar(car, 0, 0, 0);
-
     var claw = createClaw(car, 0, -30, 0);
 
     car.userData = {up: false, down: false, claw: claw, min: -50, max: -10}
@@ -261,7 +233,6 @@ function createCraneTop(obj, x, y, z) {
     addCounterWeight(craneTop, 0, 2.5, -12);
     addCable(craneTop, 0, 15.5, 19, 41, -70);
     addCable(craneTop, 0, 15.5, -6, 19, 40);
-
     var car = createCar(craneTop, 0, 2, 45);
 
     craneTop.userData = {slideFront: false, slideBack: false, car: car, min: 15, max: 45}
@@ -278,7 +249,6 @@ function createCrane(x, y, z) {
 
     addBase(crane, 0, 0, 0);
     addTower(crane, 0, 27.5, 0);
-
     var craneTop = createCraneTop(crane, 0, 55.5, 0);
 
     crane.userData = { rotateLeft: false, rotateRight: false, top: craneTop};
@@ -291,9 +261,7 @@ function addFloor(obj, x, y, z) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
     var geometry = new THREE.BoxGeometry(20, 1, 20);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    obj.add(mesh);
+    createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
 }
 
 function addWall(obj, x, y, z, rotate) {
@@ -301,10 +269,8 @@ function addWall(obj, x, y, z, rotate) {
 
     var material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
     var geometry = new THREE.BoxGeometry(1, 10, 20);
-    var mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    if (rotate) { mesh.rotateY(degToRad(90)); }
-    obj.add(mesh);
+    var wall = createObject(geometry, material, new THREE.Vector3(x, y, z), obj);
+    if (rotate) { wall.rotateY(degToRad(90)); }
 }
 
 function createContainer(x, y, z) {
@@ -326,50 +292,26 @@ function createContainer(x, y, z) {
 function createPieces() {
     'use strict';
 
-    p1 = new THREE.Object3D();
-    p2 = new THREE.Object3D();
-    p3 = new THREE.Object3D();
-    p4 = new THREE.Object3D();
-    p5 = new THREE.Object3D();
-
     var material1 = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
     var geometry = new THREE.BoxGeometry(5, 5, 5);
-    var mesh = new THREE.Mesh(geometry, material1);
-    p1.add(mesh);
+    p1 = createObject(geometry, material1, new THREE.Vector3(30, 0, -10), scene);
 
     var material2 = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
     var geometry = new THREE.DodecahedronGeometry(4);
-    var mesh = new THREE.Mesh(geometry, material2);
-    p2.add(mesh);
+    p2 = createObject(geometry, material2, new THREE.Vector3(-20, 0, 10), scene);
 
     var material3 = new THREE.MeshBasicMaterial({ color: 0xf00f00, wireframe: true });
     var geometry = new THREE.IcosahedronGeometry(4);
-    var mesh = new THREE.Mesh(geometry, material3);
-    p3.add(mesh);
+    p3 = createObject(geometry, material3, new THREE.Vector3(20, 0, -40), scene);
 
     var material4 = new THREE.MeshBasicMaterial({ color: 0xf0000f, wireframe: true });
     var geometry = new THREE.TorusGeometry(4, 0.5);
-    var mesh = new THREE.Mesh(geometry, material4);
-    mesh.rotateX(degToRad(90));
-    p4.add(mesh);
+    p4 = createObject(geometry, material4, new THREE.Vector3(-40, 0, 0), scene);
+    p4.rotateX(degToRad(90));
 
     var material5 = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true });
     var geometry = new THREE.TorusKnotGeometry(3, 0.7);
-    var mesh = new THREE.Mesh(geometry, material5);
-    p5.add(mesh);
-
-
-    scene.add(p1);
-    scene.add(p2);
-    scene.add(p3);
-    scene.add(p4);
-    scene.add(p5);
-
-    p1.position.set(30, 0, -10);
-    p2.position.set(-20, 0, 10);
-    p3.position.set(20, 0, -40);
-    p4.position.set(-40, 0, 0);
-    p5.position.set(40, 0, 30);
+    p5 = createObject(geometry, material5, new THREE.Vector3(40, 0, 30), scene);
 
     p1Hitbox = new THREE.Sphere(p1.position, 4);
     p2Hitbox = new THREE.Sphere(p2.position, 4);
@@ -377,31 +319,11 @@ function createPieces() {
     p4Hitbox = new THREE.Sphere(p4.position, 4);
     p5Hitbox = new THREE.Sphere(p5.position, 4);
 
-    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+    /*var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
     var geometry = new THREE.SphereGeometry(4);
     p1HV = new THREE.Mesh(geometry, material);
     p1HV.position.set(p1.position.x, p1.position.y, p1.position.z);
-    scene.add(p1HV);
-    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-    var geometry = new THREE.SphereGeometry(4);
-    p2HV = new THREE.Mesh(geometry, material);
-    p2HV.position.set(p2.position.x, p2.position.y, p2.position.z);
-    scene.add(p2HV);
-    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-    var geometry = new THREE.SphereGeometry(4);
-    p3HV = new THREE.Mesh(geometry, material);
-    p3HV.position.set(p3.position.x, p3.position.y, p3.position.z);
-    scene.add(p3HV);
-    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-    var geometry = new THREE.SphereGeometry(4);
-    p4HV = new THREE.Mesh(geometry, material);
-    p4HV.position.set(p4.position.x, p4.position.y, p4.position.z);
-    scene.add(p4HV);
-    var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-    var geometry = new THREE.SphereGeometry(4);
-    p5HV = new THREE.Mesh(geometry, material);
-    p5HV.position.set(p5.position.x, p5.position.y, p5.position.z);
-    scene.add(p5HV);
+    scene.add(p1HV);*/
 }
 
 //////////////////////
@@ -443,8 +365,6 @@ function update(){
     var claw = car.userData.claw;
 
     clawHitbox.center = claw.getWorldPosition(new THREE.Vector3);
-    clawHV.center = claw.getWorldPosition(new THREE.Vector3);
-    //clawHV.visible = false;
 
     checkCollisions();
 }
@@ -454,7 +374,7 @@ function update(){
 /////////////
 function updateHUDText() {
     var hudText = document.getElementById('hudText');
-    hudText.innerHTML = '<p>Press 0 to toggle wireframe mode</p>' +
+    hudText.innerHTML = '<p>Press 7 to toggle wireframe mode</p>' +
                         '<p>Press Q to rotate the crane left</p>' +
                         '<p>Press A to rotate the crane right</p>' +
                         '<p>Press W to slide the car to the front</p>' + 
@@ -490,6 +410,7 @@ function createHUD() {
 function render() {
     'use strict';
 
+    createHUD();
     renderer.render(scene, currentCamera);
 }
 
@@ -506,8 +427,6 @@ function init() {
 
     createScene();
     createCameras();
-    createHUD();
-
     render();
 
     window.addEventListener('resize', onResize);
@@ -596,10 +515,28 @@ function onResize() {
     
     renderer.setSize(window.innerWidth, window.innerHeight);
 
+    function updateCamera(cam) {
+        var aspect = window.innerWidth/window.innerHeight;
+
+        if (cam.isOrthographicCamera) {
+            cam.left = window.innerWidth / - 12;
+            cam.right = window.innerWidth / 12;
+            cam.top = window.innerHeight / 12;
+            cam.bottom = window.innerHeight / - 12;
+        } else {
+            cam.aspect = aspect;
+        }
+
+        cam.updateProjectionMatrix();
+    }
+
     if(window.innerHeight > 0 && window.innerWidth > 0) {
-        //TODO
-        //camera.aspect = renderer.getSize().width/renderer.getSize().height;
-        //camera.updateProjectionMatrix;
+        updateCamera(cam1);
+        updateCamera(cam2);
+        updateCamera(cam3);
+        updateCamera(cam4);
+        updateCamera(cam5);
+        updateCamera(cam6);
     }
 }
 
@@ -616,7 +553,7 @@ function onKeyDown(e) {
     }
 
     switch (e.key) {
-        case '0':
+        case '7':
             scene.traverse(function (node) {
                 if (node instanceof THREE.Mesh) {
                     node.material.wireframe = !node.material.wireframe;
