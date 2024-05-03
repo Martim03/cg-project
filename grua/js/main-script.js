@@ -21,6 +21,17 @@ var inContainer = {
 var clawHitbox, p1Hitbox, p2Hitbox, p3Hitbox, p4Hitbox, p5Hitbox;
 var craneMaterial, cableMaterial, clawMaterial, containerMaterial, pieceMaterial;
 var pressedKeys = [];
+var phases = [
+    {action: pickUp },
+    {action: lift },
+    {action: rotate },
+    {action: slide },
+    {action: descend },
+    {action: drop },
+    {action: lift },
+];
+var currentPhase = 0;
+
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -335,7 +346,6 @@ function checkCollisions(){
 ///////////////////////
 function handleCollisions(piece){
     'use strict';
-    console.log("HIT: " + piece);
 
     crane.userData.playingAnimation = true;
     crane.userData.top.userData.car.userData.claw.add(piece);
@@ -346,48 +356,43 @@ function handleCollisions(piece){
 ////////////
 /* UPDATE */
 ////////////
-var phases = {
-    "1": true,
-    "2": false,
-    "3": false,
-    "4": false,
-    "5": false,
-    "6": false
-};
-
-function pickUp(claw) {
+function pickUp() {
+    var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.open = true;
 
     if (claw.userData.currentA == claw.userData.maxA) {
         claw.userData.open = false;
-        phases["1"] = false;
-        phases["2"] = true;
+        nextPhase();
     }
 }
 
-function lift(claw) {
+function lift() {
+    var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.up = true;
 
     if (claw.position.y == claw.userData.maxH) {
         claw.userData.up = false;
-        phases["2"] = false;
-        phases["3"] = true;
+        nextPhase()
     }
 }
 
-function rotate(craneTop, claw) {
-    craneTop.userData.rotateLeft = true;
+function rotate() {
+    var craneTop = crane.userData.top;
+    var claw = craneTop.userData.car.userData.claw;
+    craneTop.userData.rotateRight = true;
 
     var clawPos = claw.getWorldPosition(new THREE.Vector3());
     var slope = (crane.position.z - container.position.z) / (crane.position.x - container.position.x);
     if (Math.abs(clawPos.z - slope*clawPos.x) < 2 && clawPos.z > 0) {
-        craneTop.userData.rotateLeft = false;
-        phases["3"] = false;
-        phases["4"] = true;
+        craneTop.userData.rotateRight = false;
+        nextPhase()
     }
 }
 
-function slide(car, claw) {
+function slide() {
+    var car = crane.userData.top.userData.car;
+    var claw = car.userData.claw;
+
     var clawPos = claw.getWorldPosition(new THREE.Vector3());
     var dist1 = crane.position.distanceTo(container.position);
     var dist2 = new THREE.Vector3(crane.position.x, clawPos.y, crane.position.z).distanceTo(clawPos);
@@ -400,22 +405,22 @@ function slide(car, claw) {
     if (Math.abs(dist1 - dist2) < 1) {
         car.userData.slideBack = false;
         car.userData.slideFront = false;
-        phases["4"] = false;
-        phases["5"] = true;
+        nextPhase()
     }
 }
 
-function descend(claw) {
+function descend() {
+    var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.down = true;
 
     if (claw.position.y == claw.userData.minH) {
         claw.userData.down = false;
-        phases["5"] = false;
-        phases["6"] = true;
+        nextPhase()
     }
 }
 
-function drop(claw) {
+function drop() {
+    var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.close = true;
 
     if (claw.userData.currentA == claw.userData.minA) {
@@ -424,9 +429,14 @@ function drop(claw) {
         scene.add(claw.userData.piece);
         claw.userData.piece.position.set(container.position.x, 0, container.position.z);
         claw.userData.piece = null;
+        nextPhase()
+    }
+}
 
-        phases["6"] = false;
-        phases["1"] = true;
+function nextPhase() {
+    currentPhase += 1;
+    if (!(currentPhase in phases)) {
+        currentPhase = 0;
         crane.userData.playingAnimation = false;
     }
 }
@@ -441,19 +451,7 @@ function update(){
     clawHitbox.center = claw.getWorldPosition(new THREE.Vector3);
 
     if (crane.userData.playingAnimation) {
-        if (phases["1"]) {
-            pickUp(claw);
-        } else if (phases["2"]) {
-            lift(claw);
-        } else if (phases["3"]) {
-            rotate(craneTop, claw);
-        } else if (phases["4"]) {
-            slide(car, claw);
-        } else if (phases["5"]) {
-            descend(claw)
-        } else if (phases["6"]) {
-            drop(claw);
-        } 
+        phases[currentPhase].action();
     }
     
     checkCollisions();
@@ -667,7 +665,6 @@ function onResize() {
 function onKeyDown(e) {
     'use strict';
 
-    //TODO REMOVE
     if (crane.userData.playingAnimation) return;
 
     switch (e.key) {
