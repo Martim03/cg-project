@@ -4,6 +4,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 import * as Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { degToRad } from 'three/src/math/MathUtils.js';
+import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -20,9 +21,7 @@ function createScene(){
 
     scene = new THREE.Scene();
 
-    scene.add(new THREE.AxesHelper(10));
-
-    createCarousell(0, 0, 0);
+    createCarousell(0, 2.5, 0);
     createSkyDome(0, 0, 0);
 }
 
@@ -65,18 +64,26 @@ function addPointLight() {
 ////////////////////////
 /* CREATE OBJECT3D(S) */
 ////////////////////////
+function createObject(geom, matr, position, parent) {
+    var obj = new THREE.Object3D;
+    obj.add(new THREE.Mesh(geom, matr))
+    parent.add(obj);
+    obj.position.set(position.x, position.y, position.z);
+    
+    return obj;
+}
+
 function createCylinder(x, y, z) {
     'use strict';
 
     var geometry = new THREE.CylinderGeometry(5, 5, 5, 32);
     var material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-    cylinder = new THREE.Mesh(geometry, material);
-    cylinder.position.set(x, y, z);
-    scene.add(cylinder);
+    cylinder = createObject(geometry, material, new THREE.Vector3(x, y, z), scene);
 }
 
 function createRing(x, y, z, innerRadius, outerRadius, color, height) {
     'use strict';
+
     var shape = new THREE.Shape();
     shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
     var hole = new THREE.Path();
@@ -91,18 +98,46 @@ function createRing(x, y, z, innerRadius, outerRadius, color, height) {
 
     var geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
 
-    var material = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide });
+    var material = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, wireframe: false});
 
     const ring = new THREE.Mesh(geometry, material);
 
     ring.rotation.x = degToRad(90);
     ring.position.set(x, y, z);
-    ring.userData = {up: false, down: false, step: 0.5, min: 0, max: 40};
+    ring.userData = {up: false, down: false, step: 0.5, min: y, max: 40, iRadius: innerRadius, oRadius: outerRadius};
     scene.add(ring);
 
     return ring;
 }
 
+function parametricFunction(u, v) {
+    var phi = Math.PI * u;
+    var theta = 2 * Math.PI * v;
+
+    var x = Math.sin(phi) * Math.cos(theta);
+    var y = Math.sin(phi) * Math.sin(theta);
+    var z = Math.cos(phi);
+
+    return new THREE.Vector3(x, y, z);
+};
+
+function createParemetrics(ring) {
+    'use strict';
+
+    var angleStep = Math.PI / 4;
+
+    for (var i = 0; i < 8; i++) {
+        var angle = i * angleStep;
+
+        var x = ring.position.x + Math.cos(angle) * (ring.userData.iRadius + (ring.userData.oRadius - ring.userData.iRadius) / 2);
+        var y = ring.position.y*2 + 1;
+        var z = ring.position.z + Math.sin(angle) * (ring.userData.iRadius + (ring.userData.oRadius - ring.userData.iRadius) / 2);
+
+        var geometry = new ParametricGeometry(parametricFunction);
+        var material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        createObject(geometry, material, new THREE.Vector3(x, y, z), scene);
+    }
+}
 
 function createRings(x, y, z) {
     ring1 = createRing(x, y, z, 5, 10, 0xffffff, 5);
@@ -112,7 +147,10 @@ function createRings(x, y, z) {
 
 function createCarousell(x, y, z) {
     createCylinder(x, y, z);
-    createRings(0, 0, 0);
+    createRings(x, y, z);
+    createParemetrics(ring1);
+    createParemetrics(ring2);
+    createParemetrics(ring3);
 }
 
 function createSkyDome(x, y, z) {
@@ -153,12 +191,10 @@ function handleCollisions(){
 ////////////
 /* UPDATE */
 ////////////
-function updateRings() {
-    cylinder.rotation.y += 10;
-}
-
 function update(){
     'use strict';
+
+    cylinder.rotation.y += 5;
 }
 
 /////////////

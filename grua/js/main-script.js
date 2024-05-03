@@ -9,8 +9,7 @@ import { AsciiEffect, ConvexObjectBreaker, ThreeMFLoader } from 'three/examples/
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
-var cam1, cam2, cam3, cam4, cam5, cam6, scene, renderer;
-var currentCamera, cameraMap;
+var cam1, cam2, cam3, cam4, cam5, cam6, currentCamera, scene, renderer;
 var crane, container, p1, p2, p3, p4, p5;
 var inContainer = {
     "1": false,
@@ -21,6 +20,7 @@ var inContainer = {
 };
 var clawHitbox, p1Hitbox, p2Hitbox, p3Hitbox, p4Hitbox, p5Hitbox;
 var craneMaterial, cableMaterial, clawMaterial, containerMaterial, pieceMaterial;
+var pressedKeys = [];
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -65,15 +65,6 @@ function createCameras() {
     cam4 = createPrespectiveCamera(new THREE.Vector3(-100, 50, 100), new THREE.Vector3(0, 50, 0), 70, scene);
     cam5 = createOrthogonalCamera(new THREE.Vector3(-150, 50, 150), new THREE.Vector3(0, 50, 0), scene);
     currentCamera = cam1;
-
-    cameraMap = {
-        '1': cam1,
-        '2': cam2,
-        '3': cam3,
-        '4': cam4,
-        '5': cam5,
-        '6': cam6
-    };
 }
 
 /////////////////////
@@ -192,12 +183,6 @@ function createClaw(obj, x, y, z) {
     obj.add(claw);
     claw.position.set(x,y,z);
 
-    /*var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-    var geometry = new THREE.SphereGeometry(8);
-    clawHV = new THREE.Mesh(geometry, material);
-    clawHV.position.set(0, 0, 0);
-    claw.add(clawHV);*/
-
     clawHitbox = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 8);
 
     return claw;
@@ -314,12 +299,6 @@ function createPieces() {
     p3Hitbox = new THREE.Sphere(p3.position, 4);
     p4Hitbox = new THREE.Sphere(p4.position, 4);
     p5Hitbox = new THREE.Sphere(p5.position, 4);
-
-    /*var material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-    var geometry = new THREE.SphereGeometry(4);
-    p1HV = new THREE.Mesh(geometry, material);
-    p1HV.position.set(p1.position.x, p1.position.y, p1.position.z);
-    scene.add(p1HV);*/
 }
 
 //////////////////////
@@ -502,6 +481,23 @@ function updateHUDText() {
                         '<p>Press [1-6] to switch between cameras</p>';
 }
 
+function updatePressingKeys(key, clear) {
+    key = key.toUpperCase();
+
+    if (clear) {
+        var i = pressedKeys.indexOf(key);
+        delete pressedKeys[i];
+    } else if (!pressedKeys.includes(key)) {
+        pressedKeys.push(key);
+    }
+
+    var pressingKeys = document.getElementById('pressingKeys');
+    pressingKeys.innerHTML = "";
+    for (var k in pressedKeys) {
+        pressingKeys.innerHTML += pressedKeys[k] + ' ';
+    }
+}
+
 function createHUD() {
     var hud = document.createElement('div');
     hud.id = 'hud';
@@ -516,8 +512,12 @@ function createHUD() {
     var hudText = document.createElement('div');
     hudText.id = 'hudText';
     hudText.style.fontSize = '13px';
+    var pressingKeys = document.createElement('div');
+    pressingKeys.id = 'pressingKeys';
+    pressingKeys.style.fontSize = '13px';
 
     hud.appendChild(hudText);
+    hud.appendChild(pressingKeys);
     document.body.appendChild(hud);
 
     updateHUDText();
@@ -554,16 +554,16 @@ function init() {
 /* ANIMATION CYCLE */
 /////////////////////
 function scaleCable(oldClaw_posY) {
-    var car_posY = crane.userData.top.userData.car.position.y;
-    var claw_posY = crane.userData.top.userData.car.userData.claw.position.y;
+    var car_posY = crane.userData.top.userData.car.getWorldPosition(new THREE.Vector3()).y-1;
+    var claw_posY = crane.userData.top.userData.car.userData.claw.getWorldPosition(new THREE.Vector3()).y+2;
     var oldScale = crane.userData.top.userData.car.userData.claw.userData.cable.scale.y;
+    var cable = crane.userData.top.userData.car.userData.claw.userData.cable;
 
-    // Calculate new center: Claw - Car / 2
-    crane.userData.top.userData.car.userData.claw.userData.cable.position.y = -(claw_posY - car_posY)/2;
-
+    // Calculate new center: Claw - Car / 2 (off_set = 2)
+    cable.position.y = -(claw_posY - car_posY)/2 + 2;
     
     // Calculate Scale: NewSize * OldScale / OldSize (regra de 3 simples)
-    crane.userData.top.userData.car.userData.claw.userData.cable.scale.y = (oldScale * (claw_posY - car_posY)) / (oldClaw_posY - car_posY)
+    cable.scale.y = (oldScale * (claw_posY - car_posY)) / (oldClaw_posY - car_posY)
 }
 
 function openClaw(claw) {
@@ -591,22 +591,25 @@ function animate() {
 
     if (crane.userData.rotateLeft) {
         crane.userData.top.rotateY(degToRad(1));
-    } else if (crane.userData.rotateRight) {
+    }
+    if (crane.userData.rotateRight) {
         crane.userData.top.rotateY(-degToRad(1));
     }
 
     if (craneTop.userData.slideFront && car.position.z <= craneTop.userData.max) {
         car.position.z += 1
-    } else if (craneTop.userData.slideBack  && car.position.z >= craneTop.userData.min) {
+    }
+    if (craneTop.userData.slideBack  && car.position.z >= craneTop.userData.min) {
         car.position.z -= 1
     }
 
     if (car.userData.up && claw.position.y <= car.userData.max) {
-        var oldPosition = claw.position.y;
+        var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y + 2;
         claw.position.y += 1;
         scaleCable(oldPosition);
-    } else if (car.userData.down && claw.position.y >= car.userData.min) {
-        var oldPosition = claw.position.y;
+    }
+    if (car.userData.down && claw.position.y >= car.userData.min) {
+        var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y + 2;
         claw.position.y -= 1;
         scaleCable(oldPosition);
     }
@@ -614,7 +617,8 @@ function animate() {
     if (claw.userData.open && claw.userData.current <= claw.userData.max) {
         openClaw(claw);
         claw.userData.current += 1;
-    } else if (claw.userData.close && claw.userData.current >= claw.userData.min) {
+    }
+    if (claw.userData.close && claw.userData.current >= claw.userData.min) {
         closeClaw(claw);
         claw.userData.current -= 1;
     }
@@ -665,22 +669,22 @@ function onKeyDown(e) {
 
     switch (e.key) {
         case '1':
-            currentCamera = cameraMap['1'];
+            currentCamera = cam1;
             break;
         case '2':
-            currentCamera = cameraMap['2'];
+            currentCamera = cam2;
             break;
         case '3':
-            currentCamera = cameraMap['3'];
+            currentCamera = cam3;
             break;
         case '4':
-            currentCamera = cameraMap['4'];
+            currentCamera = cam4;
             break;
         case '5':
-            currentCamera = cameraMap['5'];
+            currentCamera = cam5;
             break;
         case '6':
-            currentCamera = cameraMap['6'];
+            currentCamera = cam6;
             break;
         case '7':
             toogleWireframe();
@@ -717,7 +721,11 @@ function onKeyDown(e) {
         case 'f':
             crane.userData.top.userData.car.userData.claw.userData.close = true;
             break;
+        default:
+            return;
     }
+
+    updatePressingKeys(e.key, false);
 }
 
 ///////////////////////
@@ -727,6 +735,14 @@ function onKeyUp(e){
     'use strict';
 
     switch (e.key) {
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+            break;
         case 'Q':
         case 'q':
             crane.userData.rotateLeft = false;
@@ -759,7 +775,10 @@ function onKeyUp(e){
         case 'f':
             crane.userData.top.userData.car.userData.claw.userData.close = false;
             break;
+        default: return;
     }
+
+    updatePressingKeys(e.key, true);
 }
 
 init();
