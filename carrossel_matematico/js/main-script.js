@@ -10,7 +10,8 @@ import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.j
 /* GLOBAL VARIABLES */
 //////////////////////
 var camera, scene, renderer;
-var ring1, ring2, ring3, cylinder, skydome;
+var currentCamera, cam1, cam2, cam3, cam4;
+var ring1, ring2, ring3, cylinder, skydome, Mobius;
 var ambientLight, directionalLight;
 var ring1Materials, ring2Materials, ring3Materials, CylinderMaterials, MobiusMaterials, ParametricsMaterials;
 
@@ -32,24 +33,39 @@ function createScene(){
 function createCameras() {
     'use strict';
 
-    // FOV, aspect, near, far
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    camera.position.set(70, 70, 0); 
-    camera.lookAt(scene.position);
-    scene.add(camera);
+    cam1 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
+    cam1.position.set(70, 70, 0); 
+    cam1.lookAt(scene.position);
+    scene.add(cam1);
 
+    cam2 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
+    cam2.position.set(50, 0, 0); 
+    cam2.lookAt(scene.position);
+    scene.add(cam2);
+
+    cam3 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
+    cam3.position.set(0, 0, 50); 
+    cam3.lookAt(scene.position);
+    scene.add(cam3);
+
+    cam4 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
+    cam4.position.set(0, 50, 0); 
+    cam4.lookAt(scene.position);
+    scene.add(cam4);
+
+    currentCamera = cam1;
 }
 
 /////////////////////
 /* CREATE LIGHT(S) */
 /////////////////////
 function addAmbientLight() {
-    ambientLight = new THREE.AmbientLight(0xffa500, 0.2);
+    ambientLight = new THREE.AmbientLight(0xffa500, 0.3);
     scene.add(ambientLight);
 }
 
 function addDirectionalLight() {
-    directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight = new THREE.DirectionalLight(0xffffff, 2);
     directionalLight.position.set(50, 50, 50);
     directionalLight.castShadow = true;
     scene.add(directionalLight);
@@ -86,8 +102,8 @@ function createMaterial(color) {
 function switchMaterial(materialType) {
     cylinder.userData.mesh.material = CylinderMaterials[materialType];
     ring1.userData.mesh.material = ring1Materials[materialType];
-    ring2.userData.mesh.material = ring1Materials[materialType];
-    ring3.userData.mesh.material = ring1Materials[materialType];
+    ring2.userData.mesh.material = ring2Materials[materialType];
+    ring3.userData.mesh.material = ring3Materials[materialType];
 
     for (var p in ring1.userData.parametrics) {
         ring1.userData.parametrics[p].userData.mesh.material = ParametricsMaterials[materialType];
@@ -100,6 +116,35 @@ function switchMaterial(materialType) {
     }
 }
 
+function toggleLighting() {   
+    cylinder.userData.mesh.material.lights = !cylinder.userData.mesh.material.lights;
+    ring1.userData.mesh.material.lights = !ring1.userData.mesh.material.lights;
+    ring2.userData.mesh.material.lights = !ring2.userData.mesh.material.lights;
+    ring3.userData.mesh.material.lights = !ring3.userData.mesh.material.lights;
+
+    for (var p in ring1.userData.parametrics) {
+        ring1.userData.parametrics[p].userData.mesh.material.lights = !ring1.userData.parametrics[p].userData.mesh.material.lights;
+    }
+    for (p in ring2.userData.parametrics) {
+        ring2.userData.parametrics[p].userData.mesh.material.lights = !ring2.userData.parametrics[p].userData.mesh.material.lights;
+    }
+    for (p in ring3.userData.parametrics) {
+        ring3.userData.parametrics[p].userData.mesh.material.lights = !ring3.userData.parametrics[p].userData.mesh.material.lights;
+    }
+}
+
+function toogleSpotlights(visible) {
+    for (var s in ring1.userData.spotlights) {
+        ring1.userData.spotlights[s].visible = visible;
+    }
+    for (s in ring2.userData.spotlights) {
+        ring2.userData.spotlights[s].visible = visible;
+    }
+    for (s in ring3.userData.spotlights) {
+        ring3.userData.spotlights[s].visible = visible;
+    }
+}
+
 function createCylinder(x, y, z) {
     'use strict';
 
@@ -108,7 +153,7 @@ function createCylinder(x, y, z) {
     cylinder = createObject(geometry, CylinderMaterials["Lambert"], new THREE.Vector3(x, y, z), scene);
 }
 
-function createRing(x, y, z, innerRadius, outerRadius, color, height) {
+function createRing(x, y, z, innerRadius, outerRadius, height, material) {
     'use strict';
 
     var shape = new THREE.Shape();
@@ -124,8 +169,7 @@ function createRing(x, y, z, innerRadius, outerRadius, color, height) {
     };
 
     var geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    ring1Materials = createMaterial(color);
-    var ring = createObject(geometry, ring1Materials["Lambert"], new THREE.Vector3(x, y, z), scene);
+    var ring = createObject(geometry, material, new THREE.Vector3(x, y, z), scene);
     ring.rotateX(degToRad(90));
     
     ring.userData.up = false;
@@ -136,6 +180,7 @@ function createRing(x, y, z, innerRadius, outerRadius, color, height) {
     ring.userData.iRadius = innerRadius;
     ring.userData.oRadius = outerRadius;
     ring.userData.parametrics = [];
+    ring.userData.spotlights = [];
 
     return ring;
 }
@@ -165,68 +210,37 @@ var torusParametric = function(u, v, target) {
     target.set(x, y, z);
 }
 
-// NOT WORKING
-var hyperboloidParametric = function(u, v, target) {
-    var a = 0.5;
-    var b = 0.5;
-    var c = 0.5;
+var twistedTorusParametric = function( u, v, target )
+{
+    var n = 50, t = 5, radius = 1, tubeRadius = 0.5;
 
-    var theta = u * Math.PI * 2;
-    var phi = v * Math.PI;
+    u *= 2*Math.PI;
+    v *= 2*Math.PI;
 
-    var x = a * Math.sinh(phi) * Math.cos(theta);
-    var y = b * Math.sinh(phi) * Math.sin(theta);
-    var z = c * Math.cosh(phi);
+    var r = tubeRadius*(Math.cos(v)**n + Math.sin(v)**n)**(-1/n),
+            x = (radius+r*Math.cos(v+t*u)) * Math.cos(u),
+            y = (radius+r*Math.cos(v+t*u)) * Math.sin(u),
+            z = r*Math.sin(v+t*u);
+	
+  	target.set( x, y, z );
+}
+
+var kleinParametric = function (u, v, target) {
+    var a = 0.8;
+    var n = 0.8;
+    var m = 2;
+
+    var u = u * 4 * Math.PI;
+    var v = v * 2 * Math.PI;
+
+    var x = (a + Math.cos(n * u / 2.0) * Math.sin(v) - Math.sin(n * u / 2.0) * Math.sin(2 * v)) * Math.cos(m * u / 2.0);
+    var y = (a + Math.cos(n * u / 2.0) * Math.sin(v) - Math.sin(n * u / 2.0) * Math.sin(2 * v)) * Math.sin(m * u / 2.0);
+    var z = Math.sin(n * u / 2.0) * Math.sin(v) + Math.cos(n * u / 2.0) * Math.sin(2 * v);
 
     target.set(x, y, z);
 }
 
-// NOT WORKING
-var boySurfaceParametric = function(u, v, target) {
-    var x = Math.sin(u) * Math.cos(v);
-    var y = Math.sin(u) * Math.sin(v);
-    var z = Math.cos(u) + Math.log(Math.tan(u / 2));
-
-    target.set(x, y, z);
-}
-
-// NOT WORKING
-var helicoidParametric = function(u, v, target) {
-    var a = 1;
-    var b = 1;
-
-    var x = u * Math.cos(v);
-    var y = u * Math.sin(v);
-    var z = a * v + b * u;
-
-    target.set(x, y, z);
-}
-
-//NOT WORKING
-var hyperbolicParaboloidParametric = function(u, v, target) {
-    var a = 50;
-    var b = 50;
-
-    var x = u;
-    var y = v;
-    var z = a * u * u - b * v * v;
-
-    target.set(x, y, z);
-}
-
-//NOT WORKING
-var cylinderParametric = function(u, v, target) {
-    var radius = 2;
-    var height = 4;
-
-    var x = radius * Math.cos(u);
-    var y = radius * Math.sin(u);
-    var z = v * height;
-
-    target.set(x, y, z);
-}
-
-
+//KINDA WORKING
 var coneParametric = function(u, v, target) {
     var radius = 2; 
     var height = 5
@@ -238,16 +252,71 @@ var coneParametric = function(u, v, target) {
     target.set(x, y, z);
 }
 
+// KINDA WORKING
+var taperedCylinderParametric = function(u, v, target) {
+    const baseRadius = 0.8;
+    const topRadius = 1.5;
+    const height = 3;
+
+    const radius = baseRadius + (topRadius - baseRadius) * v;
+
+    const x = radius * Math.cos(u*2*Math.PI);
+    const y = radius * Math.sin(u*2*Math.PI);
+    const z = height * v;
+
+    target.set(x, y, z);
+}
+
+// KINDA WORKING
+var ruledHyperboloid = function(u, v, target) {
+    const a = 0.1;
+    const b = 0.1;
+  
+    const theta = u * Math.PI * 2;
+    const phi = v * Math.PI;
+  
+    const x = a * Math.cos(theta) * Math.sinh(phi);
+    const y = b * Math.sin(theta) * Math.sinh(phi);
+    const z = phi;
+  
+    target.set(x, y, z);
+  }
+
+//KINDA WORKING
+var cylinderParametric = function(u, v, target) {
+    const radius = 1;
+    const height = 3;
+
+    const x = radius * Math.cos(u*2*Math.PI);
+    const y = radius * Math.sin(u*2*Math.PI);
+    const z = height * v;
+
+    target.set(x, y, z);
+}
+
 //NOT WORKING
-var mobiusParametric = function (u, v, target) {
-    var radius = 5;
-    var width = 1;
+var mobiusParametric = function(u, v, target) {
+    const phi = u * Math.PI * 2;
+    const majorRadius = 4;
+    const minorRadius = 1;
 
-    var x = (1 + v * Math.cos(u / 2)) * Math.cos(u);
-    var y = (1 + v * Math.cos(u / 2)) * Math.sin(u);
-    var z = v * Math.sin(u / 2);
+    const x = (majorRadius + minorRadius * Math.cos(v * Math.PI)) * Math.cos(phi);
+    const y = (majorRadius + minorRadius * Math.cos(v * Math.PI)) * Math.sin(phi);
+    const z = minorRadius * Math.sin(v * Math.PI);
 
-    target.set(x * radius, y * radius, z * width);
+    target.set(x, y, z);
+}
+
+function createSpotlight(position, target, obj) {
+    var spotlight = new THREE.SpotLight(0xffffff, 1);
+
+    spotlight.position.set(position.x, position.y, position.z);
+    spotlight.target.position.set(target.position);
+    //spotlight.angle = Math.PI / 4;
+
+    obj.add(spotlight);
+
+    return spotlight;
 }
 
 function createParemetrics(ring) {
@@ -255,24 +324,56 @@ function createParemetrics(ring) {
 
     var angleStep = Math.PI / 4;
 
+    var parametricFunctions = [sphereParametric, torusParametric, taperedCylinderParametric, coneParametric, 
+                                kleinParametric, cylinderParametric, ruledHyperboloid, twistedTorusParametric];
+
     for (var i = 0; i < 8; i++) {
         var angle = i * angleStep;
 
         var x = ring.position.x + Math.cos(angle) * (ring.userData.iRadius + (ring.userData.oRadius - ring.userData.iRadius) / 2);
         var y = ring.position.z + Math.sin(angle) * (ring.userData.iRadius + (ring.userData.oRadius - ring.userData.iRadius) / 2);
-        var z = ring.position.y/2 - 3;
+        var z = ring.position.y/2 - 5;
 
-        var geometry = new ParametricGeometry(sphereParametric, 5, 5);
+        var geometry = new ParametricGeometry(parametricFunctions[i], 50, 50);
         ParametricsMaterials = createMaterial(0xff0000);
         var obj = createObject(geometry, ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z), ring);
         ring.userData.parametrics.push(obj);
+
+        var spot = createSpotlight(new THREE.Vector3(x, ring.position.y/2, z), new THREE.Vector3(x, y, z), ring);
+        ring.userData.spotlights.push(spot);
     }
 }
 
 function createRings(x, y, z) {
-    ring1 = createRing(x, y, z, 5, 10, 0xffffff, 5);
-    ring2 = createRing(x, y, z, 10, 15, 0xffd700, 5);
-    ring3 = createRing(x, y, z,15, 20, 0xff8c00, 5);
+    ring1Materials = createMaterial(0xffffff);
+    ring2Materials = createMaterial(0xffd700);
+    ring3Materials = createMaterial(0xff8c00);
+    ring1 = createRing(x, y, z, 5, 10, 5, ring1Materials["Lambert"]);
+    ring2 = createRing(x, y, z, 10, 15, 5, ring2Materials["Lambert"]);
+    ring3 = createRing(x, y, z,15, 20, 5, ring3Materials["Lambert"]);
+}
+
+function createPointLight(x, y, z) {
+    const light = new THREE.PointLight(0x00ff00, 1);
+    light.position.set(x, y, z);
+    scene.add(light);
+    return light;
+}
+
+function createMobius(x, y, z) {
+    var geometry = new ParametricGeometry(mobiusParametric, 50, 50);
+    Mobius = createObject(geometry, ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z), scene);
+    Mobius.rotateX(degToRad(90));
+    Mobius.rotateZ(degToRad(90));
+
+    for (let i = 0; i < 8; i++) {
+        var t = (i / 8) * Math.PI * 2;
+        var x = Math.cos(t) * 4;
+        var y = 0;
+        var z = Math.sin(t) * 4;
+    
+        createPointLight(x, y, z);
+    }
 }
 
 function createCarousell(x, y, z) {
@@ -281,6 +382,7 @@ function createCarousell(x, y, z) {
     createParemetrics(ring1);
     createParemetrics(ring2);
     createParemetrics(ring3);
+    createMobius(x, y + 20, z);
 }
 
 function createSkyDome(x, y, z) {
@@ -324,17 +426,20 @@ function handleCollisions(){
 function rotateParametrics(ring) {
     'use strict';
 
+    var vel = 0.01;
+
     for (var p in ring.userData.parametrics) {
-        ring.userData.parametrics[p].rotation.y += 2;
+        ring.userData.parametrics[p].rotation.x += vel;
+        vel += 0.01;
     }
 }
 
 function update(){
     'use strict';
 
-    cylinder.rotateY(degToRad(5));
+    cylinder.rotateY(degToRad(1));
     ring1.rotateZ(degToRad(0.5));
-    ring2.rotateZ(degToRad(-1));
+    ring2.rotateZ(degToRad(-0.7));
     ring3.rotateZ(degToRad(1.5));
 
     rotateParametrics(ring1);
@@ -348,7 +453,7 @@ function update(){
 function render() {
     'use strict';
 
-    renderer.render(scene, camera);
+    renderer.render(scene, currentCamera);
 }
 
 ////////////////////////////////
@@ -380,7 +485,6 @@ function init() {
 
     renderer.xr.addEventListener('sessionstart', onSessionStart);
     renderer.xr.addEventListener('sessionend', onSessionEnd);
-
 
     animate();
 }
@@ -469,7 +573,7 @@ function onKeyDown(e) {
             break;
         case 'T':
         case 't':
-            //toggleLighting();
+            toggleLighting();
             break;
         case 'Q':
         case 'q':
@@ -486,6 +590,26 @@ function onKeyDown(e) {
         case 'R':
         case 'r':
             switchMaterial('Normal');
+            break;
+        case 'P':
+        case 'p':
+            toogleSpotlights(true);
+            break;
+        case 'S':
+        case 's':
+            toogleSpotlights(false);
+            break;
+        case "7":
+            currentCamera = cam1;
+            break;
+        case "8":
+            currentCamera = cam2;
+            break;
+        case "9":
+            currentCamera = cam3;
+            break;
+        case "0":
+            currentCamera = cam4;
             break;
         }
 }
