@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import * as Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import { degToRad } from 'three/src/math/MathUtils.js';
+import { degToRad, radToDeg } from 'three/src/math/MathUtils.js';
 import { AsciiEffect, ConvexObjectBreaker, ThreeMFLoader } from 'three/examples/jsm/Addons.js';
 
 //////////////////////
@@ -18,7 +18,6 @@ var inContainer = {
     "4": false,
     "5": false
 };
-var clawHitbox, p1Hitbox, p2Hitbox, p3Hitbox, p4Hitbox, p5Hitbox;
 var craneMaterial, cableMaterial, clawMaterial, containerMaterial, pieceMaterial;
 var pressedKeys = [];
 var phases = [
@@ -31,7 +30,7 @@ var phases = [
     {action: lift },
 ];
 var currentPhase = 0;
-
+var clock = new THREE.Clock();
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -191,13 +190,11 @@ function createClaw(obj, x, y, z) {
     cam6 = createPrespectiveCamera(new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, -50, 0), 70, claw);
 
     claw.userData = {up: false, down: false,  minH: -50, maxH: -10, 
-                    open: false, close: false, minA: 0, maxA: 45, currentA: 0,
+                    close: false, open: false, minA: 0, maxA: 45,
                     f1: f1, f2: f2, f3: f3, f4: f4, 
-                    cable: cable, piece: null}
+                    cable: cable, piece: null, radius: 8}
     obj.add(claw);
     claw.position.set(x,y,z);
-
-    clawHitbox = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 8);
 
     return claw;
 }
@@ -308,34 +305,42 @@ function createPieces() {
     var geometry = new THREE.TorusKnotGeometry(3, 0.7);
     p5 = createObject(geometry, pieceMaterial, new THREE.Vector3(40, 0, 30), scene);
 
-    p1Hitbox = new THREE.Sphere(p1.position, 4);
-    p2Hitbox = new THREE.Sphere(p2.position, 4);
-    p3Hitbox = new THREE.Sphere(p3.position, 4);
-    p4Hitbox = new THREE.Sphere(p4.position, 4);
-    p5Hitbox = new THREE.Sphere(p5.position, 4);
+    p1.userData = {radius: 4};
+    p2.userData = {radius: 4};
+    p3.userData = {radius: 4};
+    p4.userData = {radius: 4};
+    p5.userData = {radius: 4};
 }
 
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
+function isColliding(obj1, obj2) {
+    const r1 = obj1.userData.radius;
+    const r2 = obj1.userData.radius;
+    const dist = obj1.getWorldPosition(new THREE.Vector3).distanceToSquared(obj2.getWorldPosition(new THREE.Vector3));
+
+    return dist <= r1**2 + r2**2;
+}
+
 function checkCollisions(){
     'use strict';
 
     if (crane.userData.playingAnimation) return;
 
-    if (clawHitbox.intersectsSphere(p1Hitbox) && !inContainer["1"]){
+    if (isColliding(crane.userData.top.userData.car.userData.claw, p1) && !inContainer["1"]){
         handleCollisions(p1);
         inContainer["1"] = true;
-    } else if (clawHitbox.intersectsSphere(p2Hitbox) && !inContainer["2"]) {
+    } else if (isColliding(crane.userData.top.userData.car.userData.claw, p2) && !inContainer["2"]) {
         handleCollisions(p2);
         inContainer["2"] = true;
-    } else if (clawHitbox.intersectsSphere(p3Hitbox) && !inContainer["3"]) {
+    } else if (isColliding(crane.userData.top.userData.car.userData.claw, p3) && !inContainer["3"]) {
         handleCollisions(p3);
         inContainer["3"] = true;
-    } else if (clawHitbox.intersectsSphere(p4Hitbox) && !inContainer["4"]) {
+    } else if (isColliding(crane.userData.top.userData.car.userData.claw, p4) && !inContainer["4"]) {
         handleCollisions(p4);
         inContainer["4"] = true;
-    } else if (clawHitbox.intersectsSphere(p5Hitbox) && !inContainer["5"]) {
+    } else if (isColliding(crane.userData.top.userData.car.userData.claw, p5) && !inContainer["5"]) {
         handleCollisions(p5);
         inContainer["5"] = true;
     }
@@ -358,10 +363,10 @@ function handleCollisions(piece){
 ////////////
 function pickUp() {
     var claw = crane.userData.top.userData.car.userData.claw;
-    claw.userData.open = true;
+    claw.userData.close = true;
 
-    if (claw.userData.currentA == claw.userData.maxA) {
-        claw.userData.open = false;
+    if (radToDeg(claw.userData.f3.rotation.x) >= claw.userData.maxA) {
+        claw.userData.close = false;
         nextPhase();
     }
 }
@@ -370,7 +375,7 @@ function lift() {
     var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.up = true;
 
-    if (claw.position.y == claw.userData.maxH) {
+    if (claw.position.y >= claw.userData.maxH) {
         claw.userData.up = false;
         nextPhase()
     }
@@ -413,7 +418,7 @@ function descend() {
     var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.down = true;
 
-    if (claw.position.y == claw.userData.minH) {
+    if (claw.position.y <= claw.userData.minH) {
         claw.userData.down = false;
         nextPhase()
     }
@@ -421,10 +426,10 @@ function descend() {
 
 function drop() {
     var claw = crane.userData.top.userData.car.userData.claw;
-    claw.userData.close = true;
+    claw.userData.open = true;
 
-    if (claw.userData.currentA == claw.userData.minA) {
-        claw.userData.close = false;
+    if (radToDeg(claw.userData.f3.rotation.x) <= claw.userData.minA) {
+        claw.userData.open = false;
 
         scene.add(claw.userData.piece);
         claw.userData.piece.position.set(container.position.x, 0, container.position.z);
@@ -443,18 +448,17 @@ function nextPhase() {
 
 function update(){
     'use strict';
-
-    var craneTop = crane.userData.top;
-    var car = craneTop.userData.car;
-    var claw = car.userData.claw;
-
-    clawHitbox.center = claw.getWorldPosition(new THREE.Vector3);
-
-    if (crane.userData.playingAnimation) {
-        phases[currentPhase].action();
-    }
     
     checkCollisions();
+
+    if (crane.userData.playingAnimation) {
+        console.log(currentPhase);
+        phases[currentPhase].action();
+    }
+
+    animate();
+    render();
+    requestAnimationFrame(update);
 }
 
 /////////////
@@ -477,8 +481,8 @@ function updateHUDText() {
                         '<p>Press S to slide the car to the back</p>' +
                         '<p>Press E to lift the claw</p>' +
                         '<p>Press D to descend the claw</p>' +
-                        '<p>Press R to open the claw</p>' +
-                        '<p>Press F to close the claw</p>' +
+                        '<p>Press R to close the claw</p>' +
+                        '<p>Press F to open the claw</p>' +
                         '<p>Press [1-6] to switch between cameras</p>';
 }
 
@@ -567,65 +571,60 @@ function scaleCable(oldClaw_posY) {
     cable.scale.y = (oldScale * (claw_posY - car_posY)) / (oldClaw_posY - car_posY)
 }
 
-function openClaw(claw) {
-    claw.userData.f1.rotateZ(-degToRad(1));
-    claw.userData.f2.rotateZ(degToRad(1));
-    claw.userData.f3.rotateX(-degToRad(1));
-    claw.userData.f4.rotateX(degToRad(1));
+function closeClaw(claw, dt) {
+    claw.userData.f1.rotation.z -= 1*dt;
+    claw.userData.f2.rotation.z += 1*dt;
+    claw.userData.f3.rotation.x += 1*dt;
+    claw.userData.f4.rotation.x -= 1*dt;
 }
 
-function closeClaw(claw) {
-    claw.userData.f1.rotateZ(degToRad(1));
-    claw.userData.f2.rotateZ(-degToRad(1));
-    claw.userData.f3.rotateX(degToRad(1));
-    claw.userData.f4.rotateX(-degToRad(1));
+function openClaw(claw, dt) {
+    claw.userData.f1.rotation.z += 1*dt;
+    claw.userData.f2.rotation.z -= 1*dt;
+    claw.userData.f3.rotation.x -= 1*dt;
+    claw.userData.f4.rotation.x += 1*dt;
 }
 
 function animate() {
     'use strict';
 
-    update();
+    const dt = clock.getDelta();
 
     var craneTop = crane.userData.top;
     var car = craneTop.userData.car;
     var claw = car.userData.claw;
 
     if (craneTop.userData.rotateLeft) {
-        craneTop.rotateY(degToRad(1));
+        craneTop.rotation.y += 1*dt;
     }
     if (craneTop.userData.rotateRight) {
-        craneTop.rotateY(-degToRad(1));
+        craneTop.rotation.y -= 1*dt;
     }
 
     if (car.userData.slideFront && car.position.z <= car.userData.max) {
-        car.position.z += 1
+        car.position.z += 20*dt;
     }
     if (car.userData.slideBack  && car.position.z >= car.userData.min) {
-        car.position.z -= 1
+        car.position.z -= 20*dt;
     }
 
     if (claw.userData.up && claw.position.y <= claw.userData.maxH) {
         var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y + 2;
-        claw.position.y += 1;
+        claw.position.y += 25*dt;
         scaleCable(oldPosition);
     }
     if (claw.userData.down && claw.position.y >= claw.userData.minH) {
         var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y + 2;
-        claw.position.y -= 1;
+        claw.position.y -= 25*dt;
         scaleCable(oldPosition);
     }
 
-    if (claw.userData.open && claw.userData.currentA <= claw.userData.maxA) {
-        openClaw(claw);
-        claw.userData.currentA += 1;
+    if (claw.userData.close && radToDeg(claw.userData.f3.rotation.x) <= claw.userData.maxA) {
+        closeClaw(claw, dt);
     }
-    if (claw.userData.close && claw.userData.currentA >= claw.userData.minA) {
-        closeClaw(claw);
-        claw.userData.currentA -= 1;
+    if (claw.userData.open && radToDeg(claw.userData.f3.rotation.x) >= claw.userData.minA) {
+        openClaw(claw, dt);
     }
-
-    render();
-    requestAnimationFrame(animate);
 }
 
 ////////////////////////////
@@ -715,11 +714,11 @@ function onKeyDown(e) {
             break;
         case 'R':
         case 'r':
-            crane.userData.top.userData.car.userData.claw.userData.open = true;
+            crane.userData.top.userData.car.userData.claw.userData.close = true;
             break;
         case 'F':
         case 'f':
-            crane.userData.top.userData.car.userData.claw.userData.close = true;
+            crane.userData.top.userData.car.userData.claw.userData.open = true;
             break;
         default:
             return;
@@ -769,11 +768,11 @@ function onKeyUp(e){
             break;
         case 'R':
         case 'r':
-            crane.userData.top.userData.car.userData.claw.userData.open = false;
+            crane.userData.top.userData.car.userData.claw.userData.close = false;
             break;
         case 'F':
         case 'f':
-            crane.userData.top.userData.car.userData.claw.userData.close = false;
+            crane.userData.top.userData.car.userData.claw.userData.open = false;
             break;
         default:
             return;
@@ -783,6 +782,6 @@ function onKeyUp(e){
 }
 
 init();
-animate();
+update();
 
 console.log("STARTING...")
