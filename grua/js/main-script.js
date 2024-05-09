@@ -3,7 +3,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import * as Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import { degToRad, radToDeg } from 'three/src/math/MathUtils.js';
 import { AsciiEffect, ConvexObjectBreaker, ThreeMFLoader } from 'three/examples/jsm/Addons.js';
 
 //////////////////////
@@ -118,7 +117,7 @@ function addSpearHolder(obj, x, y, z) {
     'use strict';
 
     var geometry = new THREE.ConeGeometry( 4, 20, 4 );
-    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj).rotateY(degToRad(45));
+    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj).rotateY(THREE.MathUtils.degToRad(45));
 }
 
 function addFrontSpear(obj, x, y, z) {
@@ -146,7 +145,7 @@ function addCable(obj, x, y, z, size, angle) {
     'use strict';
 
     var geometry = new THREE.CylinderGeometry( 0.1, 0.1, size);
-    var obj = createObject(geometry, cableMaterial, new THREE.Vector3(x, y, z), obj).rotateX(degToRad(angle));
+    var obj = createObject(geometry, cableMaterial, new THREE.Vector3(x, y, z), obj).rotateX(THREE.MathUtils.degToRad(angle));
     
     return obj;
 }
@@ -169,7 +168,7 @@ function addFinger(obj, x, y, z) {
     'use strict';
 
     var geometry = new THREE.ConeGeometry( 3, 8, 4 );
-    var obj = createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj).rotateZ(degToRad(180));
+    var obj = createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj).rotateZ(THREE.MathUtils.degToRad(180));
 
     return obj;
 }
@@ -264,7 +263,7 @@ function addWall(obj, x, y, z, rotate) {
 
     var geometry = new THREE.BoxGeometry(1, 10, 20);
     var wall = createObject(geometry, containerMaterial, new THREE.Vector3(x, y, z), obj);
-    if (rotate) { wall.rotateY(degToRad(90)); }
+    if (rotate) { wall.rotateY(THREE.MathUtils.degToRad(90)); }
 }
 
 function createContainer(x, y, z) {
@@ -289,27 +288,27 @@ function createPieces() {
 
     pieceMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
 
-    var geometry = new THREE.BoxGeometry(5, 5, 5);
+    var geometry = new THREE.BoxGeometry(7, 7, 7);
     p1 = createObject(geometry, pieceMaterial, new THREE.Vector3(30, 0, -10), scene);
 
-    var geometry = new THREE.DodecahedronGeometry(4);
+    var geometry = new THREE.DodecahedronGeometry(6);
     p2 = createObject(geometry, pieceMaterial, new THREE.Vector3(-20, 0, 10), scene);
 
-    var geometry = new THREE.IcosahedronGeometry(4);
+    var geometry = new THREE.IcosahedronGeometry(5);
     p3 = createObject(geometry, pieceMaterial, new THREE.Vector3(20, 0, -40), scene);
 
     var geometry = new THREE.TorusGeometry(4, 0.5);
     p4 = createObject(geometry, pieceMaterial, new THREE.Vector3(-40, 0, 0), scene);
-    p4.rotateX(degToRad(90));
+    p4.rotateX(THREE.MathUtils.degToRad(90));
 
     var geometry = new THREE.TorusKnotGeometry(3, 0.7);
     p5 = createObject(geometry, pieceMaterial, new THREE.Vector3(40, 0, 30), scene);
 
-    p1.userData = {radius: 4};
-    p2.userData = {radius: 4};
-    p3.userData = {radius: 4};
+    p1.userData = {radius: 7};
+    p2.userData = {radius: 6};
+    p3.userData = {radius: 5};
     p4.userData = {radius: 4};
-    p5.userData = {radius: 4};
+    p5.userData = {radius: 3};
 }
 
 //////////////////////
@@ -349,8 +348,21 @@ function checkCollisions(){
 ///////////////////////
 /* HANDLE COLLISIONS */
 ///////////////////////
+function clearKeys() {
+    crane.userData.top.userData.rotateLeft = false;
+    crane.userData.top.userData.rotateRight = false;
+    crane.userData.top.userData.car.userData.slideFront = false;
+    crane.userData.top.userData.car.userData.slideBack = false;
+    crane.userData.top.userData.car.userData.claw.userData.up = false;
+    crane.userData.top.userData.car.userData.claw.userData.down = false;
+    crane.userData.top.userData.car.userData.claw.userData.close = false;
+    crane.userData.top.userData.car.userData.claw.userData.open = false;
+}
+
 function handleCollisions(piece){
     'use strict';
+
+    clearKeys();
 
     crane.userData.playingAnimation = true;
     crane.userData.top.userData.car.userData.claw.add(piece);
@@ -365,7 +377,7 @@ function pickUp() {
     var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.close = true;
 
-    if (radToDeg(claw.userData.f3.rotation.x) >= claw.userData.maxA) {
+    if (THREE.MathUtils.radToDeg(claw.userData.f3.rotation.x) >= claw.userData.maxA) {
         claw.userData.close = false;
         nextPhase();
     }
@@ -375,7 +387,7 @@ function lift() {
     var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.up = true;
 
-    if (claw.position.y >= claw.userData.maxH) {
+    if (claw.position.y == claw.userData.maxH) {
         claw.userData.up = false;
         nextPhase()
     }
@@ -399,15 +411,15 @@ function slide() {
     var claw = car.userData.claw;
 
     var clawPos = claw.getWorldPosition(new THREE.Vector3());
-    var dist1 = crane.position.distanceTo(container.position);
-    var dist2 = new THREE.Vector3(crane.position.x, clawPos.y, crane.position.z).distanceTo(clawPos);
+    var dist1 = crane.position.distanceToSquared(container.position);
+    var dist2 = new THREE.Vector3(crane.position.x, clawPos.y, crane.position.z).distanceToSquared(clawPos);
     if (dist1 < dist2) {
         car.userData.slideBack = true;
     } else {
         car.userData.slideFront = true;
     }
 
-    if (Math.abs(dist1 - dist2) < 1) {
+    if (Math.abs(dist1 - dist2) < 25) {
         car.userData.slideBack = false;
         car.userData.slideFront = false;
         nextPhase()
@@ -418,7 +430,7 @@ function descend() {
     var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.down = true;
 
-    if (claw.position.y <= claw.userData.minH) {
+    if (claw.position.y == claw.userData.minH) {
         claw.userData.down = false;
         nextPhase()
     }
@@ -428,7 +440,7 @@ function drop() {
     var claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.open = true;
 
-    if (radToDeg(claw.userData.f3.rotation.x) <= claw.userData.minA) {
+    if (THREE.MathUtils.radToDeg(claw.userData.f3.rotation.x) <= claw.userData.minA) {
         claw.userData.open = false;
 
         scene.add(claw.userData.piece);
@@ -452,7 +464,6 @@ function update(){
     checkCollisions();
 
     if (crane.userData.playingAnimation) {
-        console.log(currentPhase);
         phases[currentPhase].action();
     }
 
@@ -531,7 +542,6 @@ function createHUD() {
 function render() {
     'use strict';
 
-    createHUD();
     renderer.render(scene, currentCamera);
 }
 
@@ -546,6 +556,7 @@ function init() {
     renderer.setClearColor(0xADD8E6);
     document.body.appendChild(renderer.domElement);
 
+    createHUD();
     createScene();
     createCameras();
     render();
@@ -601,28 +612,38 @@ function animate() {
         craneTop.rotation.y -= 1*dt;
     }
 
-    if (car.userData.slideFront && car.position.z <= car.userData.max) {
+    if (car.userData.slideFront) {
         car.position.z += 20*dt;
+
+        if (car.position.z > car.userData.max) car.position.z = car.userData.max;
     }
-    if (car.userData.slideBack  && car.position.z >= car.userData.min) {
+    if (car.userData.slideBack) {
         car.position.z -= 20*dt;
+
+        if (car.position.z < car.userData.min) car.position.z = car.userData.min;
     }
 
-    if (claw.userData.up && claw.position.y <= claw.userData.maxH) {
+    if (claw.userData.up) {
         var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y + 2;
         claw.position.y += 25*dt;
+
+        if (claw.position.y > claw.userData.maxH) claw.position.y = claw.userData.maxH;
+
         scaleCable(oldPosition);
     }
-    if (claw.userData.down && claw.position.y >= claw.userData.minH) {
+    if (claw.userData.down) {
         var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y + 2;
         claw.position.y -= 25*dt;
+
+        if (claw.position.y < claw.userData.minH) claw.position.y = claw.userData.minH;
+
         scaleCable(oldPosition);
     }
 
-    if (claw.userData.close && radToDeg(claw.userData.f3.rotation.x) <= claw.userData.maxA) {
+    if (claw.userData.close && THREE.MathUtils.radToDeg(claw.userData.f3.rotation.x) < claw.userData.maxA) {
         closeClaw(claw, dt);
     }
-    if (claw.userData.open && radToDeg(claw.userData.f3.rotation.x) >= claw.userData.minA) {
+    if (claw.userData.open && THREE.MathUtils.radToDeg(claw.userData.f3.rotation.x) > claw.userData.minA) {
         openClaw(claw, dt);
     }
 }
