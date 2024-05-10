@@ -4,6 +4,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 import * as Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { AsciiEffect, ConvexObjectBreaker, ThreeMFLoader } from 'three/examples/jsm/Addons.js';
+import {min} from "three/nodes";
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -307,23 +308,102 @@ function createPieces() {
 
     var radiuses = [5, 6, 7, 4, 3];
 
+    var piece_positions = createRandomPosition();
 
-    var piece_positions = [
-        new THREE.Vector3(30, 0, -10),
-        new THREE.Vector3(-20, 0, 10),
-        new THREE.Vector3(20, 0, -40),
-        new THREE.Vector3(-40, 0, 0),
-        new THREE.Vector3(40, 0, 30)
-    ]
-
-    
     for (var i = 0; i < 5; i++) {
         piece_positions[i].y = radiuses[i];
         pieces.push(createObject(geometries[i], pieceMaterial, piece_positions[i], scene));
         pieces[i].userData = {radius: radiuses[i], inContainer: false};
     }
-
 }
+
+function isCollidingWithContainer(object_position, radius, minDistance) {
+    let halfContainerWidth = components_measurements.floor.width / 2; // half of the container width
+    let halfContainerLength = components_measurements.floor.length / 2; // half of the container length
+
+    // container bounds
+    let containerMinX = container.position.x - halfContainerWidth - minDistance;
+    let containerMaxX = container.position.x + halfContainerWidth + minDistance;
+    let containerMinZ = container.position.z - halfContainerLength - minDistance;
+    let containerMaxZ = container.position.z + halfContainerLength + minDistance;
+
+    // object bounds
+    let objectMinX = object_position.x - radius;
+    let objectMaxX = object_position.x + radius;
+    let objectMinZ = object_position.z - radius;
+    let objectMaxZ = object_position.z + radius;
+
+    // Check for overlaps in the X and Z axes
+    let overlapX = (objectMinX <= containerMaxX) && (objectMaxX >= containerMinX);
+    let overlapZ = (objectMinZ <= containerMaxZ) && (objectMaxZ >= containerMinZ);
+
+    return overlapX && overlapZ;
+}
+
+
+function isCollidingWithPieces(position, radius, positions, radiuses, minDistance) {
+
+    for (let i = 0; i < positions.length; i++) {
+        let other_piece_position = positions[i];
+        let other_piece_radius = radiuses[i];
+
+        let distance_squared = position.distanceToSquared(other_piece_position);
+        let total_radius = (radius + other_piece_radius + minDistance) ** 2;
+
+        if (distance_squared <= total_radius) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+function createRandomPosition() {
+
+    // Generates random positions for the pieces, and spawns each one on each position.
+    //
+    // The position of a piece must not collide with any other piece,
+    // or the base or the box.
+    // And must be atleast 2 units far away from the nearest object
+
+    var positions = [];
+    var radiuses = [5, 6, 7, 4, 3];
+
+    var minDistance = 15; // minimum distance between objects
+
+    while (positions.length < 5) {
+        var x, y, z, theta, r, vector;
+
+        let min_radius = crane.userData.top.userData.car.userData.min;
+        let max_radius = crane.userData.top.userData.car.userData.max;
+
+        y = radiuses[positions.length]; // height of the piece
+
+        let validPosition = false;
+        while (!validPosition) {
+            theta = THREE.MathUtils.randFloat(0, Math.PI * 2);
+            r = THREE.MathUtils.randInt(min_radius, max_radius);
+            // this radius ensures enough distance from base
+            // so that there is no collision and the claw can pick it up
+
+            x = r * Math.cos(theta);
+            z = r * Math.sin(theta);
+
+            vector = new THREE.Vector3(x, y, z);
+
+            if (isCollidingWithContainer(vector, radiuses[positions.length], minDistance)) continue;
+
+            if (isCollidingWithPieces(vector, radiuses[positions.length], positions, radiuses, minDistance)) continue;
+
+            validPosition = true;
+        }
+
+        positions.push(new THREE.Vector3(x, y, z));
+    }
+
+    return positions;
+}
+
 
 
 
