@@ -31,6 +31,79 @@ var phases = [
 var currentPhase = 0;
 var clock = new THREE.Clock();
 
+const baseMms = {
+    width: 10,
+    length: 10,
+    height: 5
+};
+
+const towerMms = {
+    width: 5,
+    length: 5,
+    height: 50
+};
+
+const cabinMms = {
+    width: 6,
+    length: 6,
+    height: 6
+}
+
+const spearHolderMms = {
+    radius: 4,
+    height: 20,
+}
+
+const frontSpearMms = {
+    width: 5,
+    length: 50,
+    height: 6
+}
+
+const backSpearMms = {
+    width: 5,
+    length: 15,
+    height: 6
+};
+
+const counterWeightMms = {
+    width: 3,
+    length: 6,
+    height: 10
+};
+
+const carMms = {
+    width: 3,
+    length: 3,
+    height: 2
+};
+
+const clawCableMms = {
+    height: 30
+};
+
+const handMms = {
+    radius: 8,
+    height: 4
+};
+
+const fingerMms = {
+    radius: 3,
+    height: 8
+};
+
+const floorMms = {
+    width: 20,
+    length: 20,
+    height: 1
+};
+
+const wallMms = {
+    width: 1,
+    length: 20,
+    height: 10
+}
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -40,18 +113,18 @@ function createScene(){
     scene = new THREE.Scene();
 
     createCrane(0, 0, 0);
-    createContainer( -10, 0, 30);
+    createContainer(-10, 0, 30);
     createPieces();
 }
 
 //////////////////////
 /* CREATE CAMERA(S) */
 //////////////////////
-function createPrespectiveCamera(position, lookAt, FOV, parent) {
+function createPerspectiveCamera(position, lookAt, FOV, parent) {
     var cam = new THREE.PerspectiveCamera(FOV, window.innerWidth / window.innerHeight);
     cam.position.set(position.x, position.y, position.z);
     cam.lookAt(lookAt.x, lookAt.y, lookAt.z);
-    parent.add(cam)
+    parent.add(cam);
     
     return cam;
 }
@@ -71,8 +144,8 @@ function createCameras() {
     cam1 = createOrthogonalCamera(new THREE.Vector3(150, 50, 0), new THREE.Vector3(0, 50, 0), scene);
     cam2 = createOrthogonalCamera(new THREE.Vector3(0, 50, 150), new THREE.Vector3(0, 50, 0), scene);
     cam3 = createOrthogonalCamera(new THREE.Vector3(0, 150, 0), scene.position, scene);
-    cam4 = createPrespectiveCamera(new THREE.Vector3(100, 50, 100), new THREE.Vector3(0, 50, 0), 70, scene);
-    cam5 = createOrthogonalCamera(new THREE.Vector3(100, 50, 100), new THREE.Vector3(0, 50, 0), scene);
+    cam4 = createOrthogonalCamera(new THREE.Vector3(100, 50, 100), new THREE.Vector3(0, 50, 0), scene);
+    cam5 = createPerspectiveCamera(new THREE.Vector3(100, 50, 100), new THREE.Vector3(0, 50, 0), 70, scene);
     currentCamera = cam1;
 }
 
@@ -95,82 +168,78 @@ function createObject(geom, matr, position, parent) {
 function addBase(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(10, 5, 10);
-    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
+    var geometry = new THREE.BoxGeometry(baseMms.width, baseMms.height, baseMms.length);
+    return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addTower(obj, x, y, z) {
     'use strict';
     
-    var geometry = new THREE.BoxGeometry(5, 50, 5);
-    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
+    var geometry = new THREE.BoxGeometry(towerMms.length, towerMms.height, towerMms.width);
+    return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCabin(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(6, 6, 6);
-    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
+    var geometry = new THREE.BoxGeometry(cabinMms.width, cabinMms.height, cabinMms.length);
+    return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addSpearHolder(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.ConeGeometry( 4, 20, 4 );
-    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj).rotateY(THREE.MathUtils.degToRad(45));
+    var geometry = new THREE.ConeGeometry(spearHolderMms.radius, spearHolderMms.height, spearHolderMms.radius);
+    return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj).rotateY(THREE.MathUtils.degToRad(45));
 }
 
 function addFrontSpear(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(6, 5, 50);
-    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
+    var geometry = new THREE.BoxGeometry(frontSpearMms.width, frontSpearMms.height, frontSpearMms.length);
+    return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addBackSpear(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(6, 5, -15);
-    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
+    var geometry = new THREE.BoxGeometry(backSpearMms.width, backSpearMms.height, backSpearMms.length);
+    return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCounterWeight(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(3, 10, -6);
-    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
+    var geometry = new THREE.BoxGeometry(counterWeightMms.width, counterWeightMms.height, counterWeightMms.length);
+    return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCable(obj, x, y, z, size, angle) {
     'use strict';
 
     var geometry = new THREE.CylinderGeometry( 0.1, 0.1, size);
-    var obj = createObject(geometry, cableMaterial, new THREE.Vector3(x, y, z), obj).rotateX(THREE.MathUtils.degToRad(angle));
-    
-    return obj;
+    return createObject(geometry, cableMaterial, new THREE.Vector3(x, y, z), obj).rotateX(THREE.MathUtils.degToRad(angle));
 }
 
 function addCar(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(3, 2, 3);
-    createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
+    var geometry = new THREE.BoxGeometry(carMms.width, carMms.height, carMms.length);
+    return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addHand(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.CylinderGeometry( 8, 8, 4, 10); 
-    createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj);
+    var geometry = new THREE.CylinderGeometry(handMms.radius, handMms.radius, handMms.height, 16); 
+    return createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addFinger(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.ConeGeometry( 3, 8, 4 );
-    var obj = createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj).rotateZ(THREE.MathUtils.degToRad(180));
-
-    return obj;
+    var geometry = new THREE.ConeGeometry(fingerMms.radius, fingerMms.height, 4);
+    return createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj).rotateZ(THREE.MathUtils.degToRad(180));
 }
 
 function createClaw(obj, x, y, z) {
@@ -180,13 +249,13 @@ function createClaw(obj, x, y, z) {
     
     clawMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true });
 
-    var cable = addCable(claw, 0, 15.5, 0, 27.5, 0);
+    var cable = addCable(claw, claw.position.x, clawCableMms.height/2, claw.position.z, clawCableMms.height, 0);
     addHand(claw, 0, 0, 0);
-    var f1 = addFinger(claw, 4, -4, 0);
-    var f2 = addFinger(claw, -4, -4, 0);
-    var f3 = addFinger(claw, 0, -4, 4);
-    var f4 = addFinger(claw, 0, -4, -4);
-    cam6 = createPrespectiveCamera(new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, -50, 0), 70, claw);
+    var f1 = addFinger(claw, handMms.radius/2, -handMms.height, 0);
+    var f2 = addFinger(claw, -handMms.radius/2, -handMms.height, 0);
+    var f3 = addFinger(claw, 0, -handMms.height, handMms.radius/2);
+    var f4 = addFinger(claw, 0, -handMms.height, -handMms.radius/2);
+    cam6 = createPerspectiveCamera(new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, -50, 0), 70, claw);
 
     claw.userData = {up: false, down: false,  minH: -50, maxH: -10, 
                     close: false, open: false, minA: 0, maxA: 45,
@@ -204,7 +273,7 @@ function createCar(obj, x, y, z) {
     var car = new THREE.Object3D();
 
     addCar(car, 0, 0, 0);
-    var claw = createClaw(car, 0, -30, 0);
+    var claw = createClaw(car, 0, -clawCableMms.height, 0);
 
     car.userData = {slideFront: false, slideBack: false, claw: claw, min: 15, max: 45}
     obj.add(car);
@@ -218,14 +287,14 @@ function createCraneTop(obj, x, y, z) {
 
     var craneTop = new THREE.Object3D();
 
-    addCabin(craneTop, 0, 0, 0); //55.5
-    addSpearHolder(craneTop, 0, 13, 0);
-    addFrontSpear(craneTop, 0, 5.5, 27.5);
-    addBackSpear(craneTop, 0, 5.5, -10);
-    addCounterWeight(craneTop, 0, 2.5, -12);
-    addCable(craneTop, 0, 15.5, 19, 41, -70);
-    addCable(craneTop, 0, 15.5, -6, 19, 40);
-    var car = createCar(craneTop, 0, 2, 45);
+    var cabin = addCabin(craneTop, 0, cabinMms.height/2, 0);
+    var spearHolder = addSpearHolder(craneTop, cabin.position.x, cabinMms.height+spearHolderMms.height/2, cabin.position.z);
+    var frontSpear = addFrontSpear(craneTop, spearHolder.position.x, cabinMms.height+frontSpearMms.height/2, frontSpearMms.length/2+cabinMms.length/2);
+    var backSpear = addBackSpear(craneTop, spearHolder.position.x, cabinMms.height+backSpearMms.height/2, -(backSpearMms.length/2+cabinMms.length/2));
+    addCounterWeight(craneTop, backSpear.position.x, backSpear.position.y-counterWeightMms.height/5, -(backSpearMms.length/2+cabinMms.length/2)*1.2);
+    addCable(craneTop, frontSpear.position.x, spearHolderMms.height*0.95, frontSpearMms.length*0.37, 40, -70);
+    addCable(craneTop, backSpear.position.x, spearHolderMms.height*0.93, -backSpearMms.length*0.4, 18, 40);
+    var car = createCar(craneTop, frontSpear.position.x, cabinMms.height-carMms.height/2, frontSpearMms.length/2+cabinMms.length/2);
 
     craneTop.userData = {rotateLeft: false, rotateRight: false, car: car}
     obj.add(craneTop);
@@ -242,11 +311,11 @@ function createCrane(x, y, z) {
     craneMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     cableMaterial = new THREE.MeshBasicMaterial({ color: 0x770000, wireframe: true });
 
-    addBase(crane, 0, 0, 0);
-    addTower(crane, 0, 27.5, 0);
-    var craneTop = createCraneTop(crane, 0, 55.5, 0);
+    var base = addBase(crane, 0, baseMms.height/2, 0);
+    var tower = addTower(crane, base.position.x, baseMms.height+towerMms.height/2, base.position.z);
+    var craneTop = createCraneTop(crane, tower.position.x, baseMms.height+towerMms.height, tower.position.z);
 
-    crane.userData = {top: craneTop, playingAnimation: false};
+    crane.userData = {top: craneTop, playingAnimation: false, base: base};
     scene.add(crane);
     crane.position.set(x,y,z);
 }
@@ -254,16 +323,18 @@ function createCrane(x, y, z) {
 function addFloor(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(20, 1, 20);
-    createObject(geometry, containerMaterial, new THREE.Vector3(x, y, z), obj);
+    var geometry = new THREE.BoxGeometry(floorMms.width, floorMms.height, floorMms.length);
+    return createObject(geometry, containerMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addWall(obj, x, y, z, rotate) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(1, 10, 20);
+    var geometry = new THREE.BoxGeometry(wallMms.width, wallMms.height, wallMms.length);
     var wall = createObject(geometry, containerMaterial, new THREE.Vector3(x, y, z), obj);
     if (rotate) { wall.rotateY(THREE.MathUtils.degToRad(90)); }
+
+    return wall;
 }
 
 function createContainer(x, y, z) {
@@ -273,11 +344,11 @@ function createContainer(x, y, z) {
 
     containerMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
 
-    addFloor(container, 0, -5, 0);
-    addWall(container, 10, 0, 0, false);
-    addWall(container, -10, 0, 0, false);
-    addWall(container, 0, 0, 10, true);
-    addWall(container, 0, 0, -10, true);
+    addFloor(container, 0, floorMms.height, 0);
+    addWall(container, wallMms.length/2, wallMms.height/2, 0, false);
+    addWall(container, -wallMms.length/2, wallMms.height/2, 0, false);
+    addWall(container, 0, wallMms.height/2, wallMms.length/2, true);
+    addWall(container, 0, wallMms.height/2, -wallMms.length/2, true);
 
     scene.add(container);
     container.position.set(x,y,z);
@@ -417,9 +488,9 @@ function slide() {
         car.userData.slideBack = true;
     } else {
         car.userData.slideFront = true;
-    }
+    } 
 
-    if (Math.abs(dist1 - dist2) < 25) {
+    if (clawPos.x > container.position.x && clawPos.z > container.position.z) {
         car.userData.slideBack = false;
         car.userData.slideFront = false;
         nextPhase()
@@ -570,13 +641,13 @@ function init() {
 /* ANIMATION CYCLE */
 /////////////////////
 function scaleCable(oldClaw_posY) {
-    var car_posY = crane.userData.top.userData.car.getWorldPosition(new THREE.Vector3()).y-1;
-    var claw_posY = crane.userData.top.userData.car.userData.claw.getWorldPosition(new THREE.Vector3()).y+2;
+    var car_posY = crane.userData.top.userData.car.getWorldPosition(new THREE.Vector3()).y;
+    var claw_posY = crane.userData.top.userData.car.userData.claw.getWorldPosition(new THREE.Vector3()).y;
     var oldScale = crane.userData.top.userData.car.userData.claw.userData.cable.scale.y;
     var cable = crane.userData.top.userData.car.userData.claw.userData.cable;
 
-    // Calculate new center: Claw - Car / 2 (off_set = 2)
-    cable.position.y = -(claw_posY - car_posY)/2 + 2;
+    // Calculate new center: Claw - Car / 2
+    cable.position.y = -(claw_posY - car_posY)/2;
     
     // Calculate Scale: NewSize * OldScale / OldSize (regra de 3 simples)
     cable.scale.y = (oldScale * (claw_posY - car_posY)) / (oldClaw_posY - car_posY)
@@ -624,7 +695,7 @@ function animate() {
     }
 
     if (claw.userData.up) {
-        var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y + 2;
+        var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y;
         claw.position.y += 25*dt;
 
         if (claw.position.y > claw.userData.maxH) claw.position.y = claw.userData.maxH;
@@ -632,7 +703,7 @@ function animate() {
         scaleCable(oldPosition);
     }
     if (claw.userData.down) {
-        var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y + 2;
+        var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y;
         claw.position.y -= 25*dt;
 
         if (claw.position.y < claw.userData.minH) claw.position.y = claw.userData.minH;
