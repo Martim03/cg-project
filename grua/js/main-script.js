@@ -6,7 +6,7 @@ import * as THREE from 'three';
 var cam1, cam2, cam3, cam4, cam5, cam6, currentCamera, scene, renderer;
 var crane, container;
 var pieces = [];
-var craneMaterial, cableMaterial, clawMaterial, containerMaterial, pieceMaterial;
+var craneMaterial, cableMaterial, clawMaterial, containerMaterial;
 var pressedKeys = [];
 var phases = [
     {action: pickUp },
@@ -290,31 +290,39 @@ function createContainer(x, y, z) {
 function createPieces() {
     'use strict';
 
-    pieceMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+    const materials = [
+        new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true }),
+        new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true }),
+        new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true }),
+        new THREE.MeshBasicMaterial({ color: 0xf0f0f0, wireframe: true }),
+        new THREE.MeshBasicMaterial({ color: 0x0ffff0, wireframe: true })
+    ];
 
     const geometries = [
-        new THREE.BoxGeometry(7, 7, 7),
+        new THREE.BoxGeometry(10, 10, 10),
         new THREE.DodecahedronGeometry(6),
         new THREE.IcosahedronGeometry(7),
-        new THREE.TorusGeometry(4, 0.5),
+        new THREE.TorusGeometry(5, 0.5),
         new THREE.TorusKnotGeometry(3, 0.7)
     ];
 
-    const radiuses = [10, 6, 7, 4, 3];
-    const heights = [3.5, 5.5, 6, 4, 4.5]; // distance from ground
+    const radiuses = [14, 6, 7, 5, 3];
+    const heights = [5, 5.5, 6, 5, 4.5]; // distance from ground
 
     let piece_positions = createRandomPosition();
 
     for (let i = 0; i < 5; i++) {
         piece_positions[i].y = heights[i];
-        pieces.push(createObject(geometries[i], pieceMaterial, piece_positions[i], scene));
-        pieces[i].userData = {radius: radiuses[i], inContainer: false, height_from_ground: heights[i]};
+        let new_piece = createObject(geometries[i], materials[i], piece_positions[i], scene);
+        pieces.push(new_piece);
+        pieces[i].userData = {radius: radiuses[i], inContainer: false,
+            height_from_ground: heights[i], material: materials[i]};
     }
 }
 
 function isCollidingWithContainer(object_position, radius, minDistance) {
-    let halfContainerWidth = components_measurements.floor.width / 2; // half of the container width
-    let halfContainerLength = components_measurements.floor.length / 2; // half of the container length
+    let halfContainerWidth = components_measurements.floor.width / 2;
+    let halfContainerLength = components_measurements.floor.length / 2;
 
     // container bounds
     let containerMinX = container.position.x - halfContainerWidth - minDistance;
@@ -409,7 +417,7 @@ function isColliding(obj1, obj2) {
     const r2 = obj1.userData.radius;
     const dist = obj1.getWorldPosition(new THREE.Vector3).distanceToSquared(obj2.getWorldPosition(new THREE.Vector3));
 
-    return dist <= r1**2 + r2**2;
+    return dist <= (r1 + r2) ** 2;
 }
 
 function checkCollisions(){
@@ -481,7 +489,7 @@ function rotate() {
 
     let clawPos = claw.getWorldPosition(new THREE.Vector3());
     let slope = (crane.position.z - container.position.z) / (crane.position.x - container.position.x);
-    if (Math.abs(clawPos.z - slope*clawPos.x) < 2 && clawPos.z > 0) {
+    if (Math.abs(clawPos.z - slope * clawPos.x) < 2 && clawPos.z > 0) {
         craneTop.userData.rotateRight = false;
         nextPhase()
     }
@@ -561,7 +569,11 @@ function toogleWireframe() {
     cableMaterial.wireframe = !cableMaterial.wireframe
     clawMaterial.wireframe = !clawMaterial.wireframe
     containerMaterial.wireframe = !containerMaterial.wireframe
-    pieceMaterial.wireframe = !pieceMaterial.wireframe
+
+    for (let i = 0; i < pieces.length; i++) {
+        pieces[i].userData.material.wireframe = !pieces[i].userData.material.wireframe
+    }
+
 }
 
 function updateHUDText() {
