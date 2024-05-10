@@ -300,14 +300,15 @@ function createPieces() {
         new THREE.TorusKnotGeometry(3, 0.7)
     ];
 
-    const radiuses = [5, 6, 7, 4, 3];
+    const radiuses = [10, 6, 7, 4, 3];
+    const heights = [3.5, 5.5, 6, 4, 4.5]; // distance from ground
 
     let piece_positions = createRandomPosition();
 
     for (let i = 0; i < 5; i++) {
-        piece_positions[i].y = radiuses[i];
+        piece_positions[i].y = heights[i];
         pieces.push(createObject(geometries[i], pieceMaterial, piece_positions[i], scene));
-        pieces[i].userData = {radius: radiuses[i], inContainer: false};
+        pieces[i].userData = {radius: radiuses[i], inContainer: false, height_from_ground: heights[i]};
     }
 }
 
@@ -354,11 +355,10 @@ function isCollidingWithPieces(position, radius, positions, radiuses, minDistanc
 
 function createRandomPosition() {
 
-    // Generates random positions for the pieces, and spawns each one on each position.
-    //
-    // The position of a piece must not collide with any other piece,
-    // or the base or the box.
-    // And must be at least 2 units far away from the nearest object
+    // Generates random positions for the pieces, and places each one on each position.
+    // The position of a piece:
+    // 1. Must not collide with any other piece, or the base, or the box.
+    // 2. Must be a minimum distance away from other objects.
 
     const positions = [];
     const radiuses = [5, 6, 7, 4, 3];
@@ -511,7 +511,7 @@ function descend() {
     let claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.down = true;
 
-    if (claw.position.y == claw.userData.minH) {
+    if (claw.position.y < claw.userData.minH + claw.userData.piece.userData.height_from_ground) {
         claw.userData.down = false;
         nextPhase()
     }
@@ -525,7 +525,7 @@ function drop() {
         claw.userData.open = false;
 
         container.add(claw.userData.piece);
-        claw.userData.piece.position.y += 6;
+        claw.userData.piece.position.y += 6 + claw.userData.piece.userData.height_from_ground;
         claw.userData.piece = null;
         nextPhase()
     }
