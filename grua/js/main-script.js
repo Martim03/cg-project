@@ -1,10 +1,4 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { VRButton } from 'three/addons/webxr/VRButton.js';
-import * as Stats from 'three/addons/libs/stats.module.js';
-import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import { AsciiEffect, ConvexObjectBreaker, ThreeMFLoader } from 'three/examples/jsm/Addons.js';
-import {min} from "three/nodes";
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -60,7 +54,7 @@ function createScene(){
 /* CREATE CAMERA(S) */
 //////////////////////
 function createPerspectiveCamera(position, lookAt, FOV, parent) {
-    var cam = new THREE.PerspectiveCamera(FOV, window.innerWidth / window.innerHeight);
+    let cam = new THREE.PerspectiveCamera(FOV, window.innerWidth / window.innerHeight);
     cam.position.set(position.x, position.y, position.z);
     cam.lookAt(lookAt.x, lookAt.y, lookAt.z);
     parent.add(cam);
@@ -69,7 +63,7 @@ function createPerspectiveCamera(position, lookAt, FOV, parent) {
 }
 
 function createOrthogonalCamera(position, lookAt, parent) {
-    var cam = new THREE.OrthographicCamera( window.innerWidth / - 12, window.innerWidth / 12,
+    let cam = new THREE.OrthographicCamera( window.innerWidth / - 12, window.innerWidth / 12,
     window.innerHeight / 12, window.innerHeight / - 12, 1, 1000 );
     cam.position.set(position.x, position.y, position.z);
     cam.lookAt(lookAt.x, lookAt.y, lookAt.z);
@@ -96,7 +90,7 @@ function createCameras() {
 /* CREATE OBJECT3D(S) */
 ////////////////////////
 function createObject(geom, matr, position, parent) {
-    var obj = new THREE.Object3D;
+    let obj = new THREE.Object3D;
     obj.add(new THREE.Mesh(geom, matr))
     parent.add(obj);
     obj.position.set(position.x, position.y, position.z);
@@ -107,93 +101,93 @@ function createObject(geom, matr, position, parent) {
 function addBase(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(components_measurements.base.width, components_measurements.base.height, components_measurements.base.length);
+    let geometry = new THREE.BoxGeometry(components_measurements.base.width, components_measurements.base.height, components_measurements.base.length);
     return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addTower(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(components_measurements.tower.length, components_measurements.tower.height, components_measurements.tower.width);
+    let geometry = new THREE.BoxGeometry(components_measurements.tower.length, components_measurements.tower.height, components_measurements.tower.width);
     return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCabin(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(components_measurements.cabin.width, components_measurements.cabin.height, components_measurements.cabin.length);
+    let geometry = new THREE.BoxGeometry(components_measurements.cabin.width, components_measurements.cabin.height, components_measurements.cabin.length);
     return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addSpearHolder(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.ConeGeometry(components_measurements.spearHolder.radius, components_measurements.spearHolder.height, components_measurements.spearHolder.radius);
+    let geometry = new THREE.ConeGeometry(components_measurements.spearHolder.radius, components_measurements.spearHolder.height, components_measurements.spearHolder.radius);
     return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj).rotateY(THREE.MathUtils.degToRad(45));
 }
 
 function addFrontSpear(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(components_measurements.frontSpear.width, components_measurements.frontSpear.height, components_measurements.frontSpear.length);
+    let geometry = new THREE.BoxGeometry(components_measurements.frontSpear.width, components_measurements.frontSpear.height, components_measurements.frontSpear.length);
     return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addBackSpear(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(components_measurements.backSpear.width, components_measurements.backSpear.height, components_measurements.backSpear.length);
+    let geometry = new THREE.BoxGeometry(components_measurements.backSpear.width, components_measurements.backSpear.height, components_measurements.backSpear.length);
     return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCounterWeight(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(components_measurements.counterWeight.width, components_measurements.counterWeight.height, components_measurements.counterWeight.length);
+    let geometry = new THREE.BoxGeometry(components_measurements.counterWeight.width, components_measurements.counterWeight.height, components_measurements.counterWeight.length);
     return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addCable(obj, x, y, z, size, angle) {
     'use strict';
 
-    var geometry = new THREE.CylinderGeometry( 0.1, 0.1, size);
+    let geometry = new THREE.CylinderGeometry( 0.1, 0.1, size);
     return createObject(geometry, cableMaterial, new THREE.Vector3(x, y, z), obj).rotateX(THREE.MathUtils.degToRad(angle));
 }
 
 function addCar(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(components_measurements.car.width, components_measurements.car.height, components_measurements.car.length);
+    let geometry = new THREE.BoxGeometry(components_measurements.car.width, components_measurements.car.height, components_measurements.car.length);
     return createObject(geometry, craneMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addHand(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.CylinderGeometry(components_measurements.hand.radius, components_measurements.hand.radius, components_measurements.hand.height, 16);
+    let geometry = new THREE.CylinderGeometry(components_measurements.hand.radius, components_measurements.hand.radius, components_measurements.hand.height, 16);
     return createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addFinger(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.ConeGeometry(components_measurements.finger.radius, components_measurements.finger.height, 4);
+    let geometry = new THREE.ConeGeometry(components_measurements.finger.radius, components_measurements.finger.height, 4);
     return createObject(geometry, clawMaterial, new THREE.Vector3(x, y, z), obj).rotateZ(THREE.MathUtils.degToRad(180));
 }
 
 function createClaw(obj, x, y, z) {
     'use strict';
 
-    var claw = new THREE.Object3D();
+    let claw = new THREE.Object3D();
 
     clawMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true });
 
-    var cable = addCable(claw, claw.position.x, components_measurements.clawCable.height/2, claw.position.z, components_measurements.clawCable.height, 0);
+    let cable = addCable(claw, claw.position.x, components_measurements.clawCable.height/2, claw.position.z, components_measurements.clawCable.height, 0);
     addHand(claw, 0, 0, 0);
-    var f1 = addFinger(claw, components_measurements.hand.radius/2, -components_measurements.hand.height, 0);
-    var f2 = addFinger(claw, -components_measurements.hand.radius/2, -components_measurements.hand.height, 0);
-    var f3 = addFinger(claw, 0, -components_measurements.hand.height, components_measurements.hand.radius/2);
-    var f4 = addFinger(claw, 0, -components_measurements.hand.height, -components_measurements.hand.radius/2);
+    let f1 = addFinger(claw, components_measurements.hand.radius/2, -components_measurements.hand.height, 0);
+    let f2 = addFinger(claw, -components_measurements.hand.radius/2, -components_measurements.hand.height, 0);
+    let f3 = addFinger(claw, 0, -components_measurements.hand.height, components_measurements.hand.radius/2);
+    let f4 = addFinger(claw, 0, -components_measurements.hand.height, -components_measurements.hand.radius/2);
     cam6 = createPerspectiveCamera(new THREE.Vector3(0, -2, 0), new THREE.Vector3(0, -50, 0), 70, claw);
 
     claw.userData = {up: false, down: false,  minH: -50, maxH: -10,
@@ -209,10 +203,10 @@ function createClaw(obj, x, y, z) {
 function createCar(obj, x, y, z) {
     'use strict';
 
-    var car = new THREE.Object3D();
+    let car = new THREE.Object3D();
 
     addCar(car, 0, 0, 0);
-    var claw = createClaw(car, 0, -components_measurements.clawCable.height, 0);
+    let claw = createClaw(car, 0, -components_measurements.clawCable.height, 0);
 
     car.userData = {slideFront: false, slideBack: false, claw: claw, min: 15, max: 45}
     obj.add(car);
@@ -224,16 +218,16 @@ function createCar(obj, x, y, z) {
 function createCraneTop(obj, x, y, z) {
     'use strict';
 
-    var craneTop = new THREE.Object3D();
+    let craneTop = new THREE.Object3D();
 
-    var cabin = addCabin(craneTop, 0, components_measurements.cabin.height/2, 0);
-    var spearHolder = addSpearHolder(craneTop, cabin.position.x, components_measurements.cabin.height+components_measurements.spearHolder.height/2, cabin.position.z);
-    var frontSpear = addFrontSpear(craneTop, spearHolder.position.x, components_measurements.cabin.height+components_measurements.frontSpear.height/2, components_measurements.frontSpear.length/2+components_measurements.cabin.length/2);
-    var backSpear = addBackSpear(craneTop, spearHolder.position.x, components_measurements.cabin.height+components_measurements.backSpear.height/2, -(components_measurements.backSpear.length/2+components_measurements.cabin.length/2));
+    let cabin = addCabin(craneTop, 0, components_measurements.cabin.height/2, 0);
+    let spearHolder = addSpearHolder(craneTop, cabin.position.x, components_measurements.cabin.height+components_measurements.spearHolder.height/2, cabin.position.z);
+    let frontSpear = addFrontSpear(craneTop, spearHolder.position.x, components_measurements.cabin.height+components_measurements.frontSpear.height/2, components_measurements.frontSpear.length/2+components_measurements.cabin.length/2);
+    let backSpear = addBackSpear(craneTop, spearHolder.position.x, components_measurements.cabin.height+components_measurements.backSpear.height/2, -(components_measurements.backSpear.length/2+components_measurements.cabin.length/2));
     addCounterWeight(craneTop, backSpear.position.x, backSpear.position.y-components_measurements.counterWeight.height/5, -(components_measurements.backSpear.length/2+components_measurements.cabin.length/2)*1.2);
     addCable(craneTop, frontSpear.position.x, components_measurements.spearHolder.height*0.95, components_measurements.frontSpear.length*0.37, 40, -70);
     addCable(craneTop, backSpear.position.x, components_measurements.spearHolder.height*0.93, -components_measurements.backSpear.length*0.4, 18, 40);
-    var car = createCar(craneTop, frontSpear.position.x, components_measurements.cabin.height-components_measurements.car.height/2, components_measurements.frontSpear.length/2+components_measurements.cabin.length/2);
+    let car = createCar(craneTop, frontSpear.position.x, components_measurements.cabin.height-components_measurements.car.height/2, components_measurements.frontSpear.length/2+components_measurements.cabin.length/2);
 
     craneTop.userData = {rotateLeft: false, rotateRight: false, car: car}
     obj.add(craneTop);
@@ -250,9 +244,9 @@ function createCrane(x, y, z) {
     craneMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
     cableMaterial = new THREE.MeshBasicMaterial({ color: 0x770000, wireframe: true });
 
-    var base = addBase(crane, 0, components_measurements.base.height/2, 0);
-    var tower = addTower(crane, base.position.x, components_measurements.base.height+components_measurements.tower.height/2, base.position.z);
-    var craneTop = createCraneTop(crane, tower.position.x, components_measurements.base.height+components_measurements.tower.height, tower.position.z);
+    let base = addBase(crane, 0, components_measurements.base.height/2, 0);
+    let tower = addTower(crane, base.position.x, components_measurements.base.height+components_measurements.tower.height/2, base.position.z);
+    let craneTop = createCraneTop(crane, tower.position.x, components_measurements.base.height+components_measurements.tower.height, tower.position.z);
 
     crane.userData = {top: craneTop, playingAnimation: false, base: base};
     scene.add(crane);
@@ -262,15 +256,15 @@ function createCrane(x, y, z) {
 function addFloor(obj, x, y, z) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(components_measurements.floor.width, components_measurements.floor.height, components_measurements.floor.length);
+    let geometry = new THREE.BoxGeometry(components_measurements.floor.width, components_measurements.floor.height, components_measurements.floor.length);
     return createObject(geometry, containerMaterial, new THREE.Vector3(x, y, z), obj);
 }
 
 function addWall(obj, x, y, z, rotate) {
     'use strict';
 
-    var geometry = new THREE.BoxGeometry(components_measurements.wall.width, components_measurements.wall.height, components_measurements.wall.length);
-    var wall = createObject(geometry, containerMaterial, new THREE.Vector3(x, y, z), obj);
+    let geometry = new THREE.BoxGeometry(components_measurements.wall.width, components_measurements.wall.height, components_measurements.wall.length);
+    let wall = createObject(geometry, containerMaterial, new THREE.Vector3(x, y, z), obj);
     if (rotate) { wall.rotateY(THREE.MathUtils.degToRad(90)); }
 
     return wall;
@@ -298,19 +292,19 @@ function createPieces() {
 
     pieceMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
 
-    var geometries = [
+    const geometries = [
         new THREE.BoxGeometry(7, 7, 7),
         new THREE.DodecahedronGeometry(6),
         new THREE.IcosahedronGeometry(7),
         new THREE.TorusGeometry(4, 0.5),
         new THREE.TorusKnotGeometry(3, 0.7)
-    ]
+    ];
 
-    var radiuses = [5, 6, 7, 4, 3];
+    const radiuses = [5, 6, 7, 4, 3];
 
-    var piece_positions = createRandomPosition();
+    let piece_positions = createRandomPosition();
 
-    for (var i = 0; i < 5; i++) {
+    for (let i = 0; i < 5; i++) {
         piece_positions[i].y = radiuses[i];
         pieces.push(createObject(geometries[i], pieceMaterial, piece_positions[i], scene));
         pieces[i].userData = {radius: radiuses[i], inContainer: false};
@@ -364,15 +358,15 @@ function createRandomPosition() {
     //
     // The position of a piece must not collide with any other piece,
     // or the base or the box.
-    // And must be atleast 2 units far away from the nearest object
+    // And must be at least 2 units far away from the nearest object
 
-    var positions = [];
-    var radiuses = [5, 6, 7, 4, 3];
+    const positions = [];
+    const radiuses = [5, 6, 7, 4, 3];
 
-    var minDistance = 15; // minimum distance between objects
+    const minDistance = 15; // minimum distance between objects
 
     while (positions.length < 5) {
-        var x, y, z, theta, r, vector;
+        let x, y, z, theta, r, vector;
 
         let min_radius = crane.userData.top.userData.car.userData.min;
         let max_radius = crane.userData.top.userData.car.userData.max;
@@ -423,7 +417,7 @@ function checkCollisions(){
 
     if (crane.userData.playingAnimation) return;
 
-    for (var i = 0; i < 5; i++) {
+    for (let i = 0; i < 5; i++) {
         if (isColliding(crane.userData.top.userData.car.userData.claw, pieces[i]) && !pieces[i].userData.inContainer) {
             handleCollisions(pieces[i]);
             pieces[i].userData.inContainer = true;
@@ -461,7 +455,7 @@ function handleCollisions(piece){
 /* UPDATE */
 ////////////
 function pickUp() {
-    var claw = crane.userData.top.userData.car.userData.claw;
+    let claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.close = true;
 
     if (THREE.MathUtils.radToDeg(claw.userData.f3.rotation.x) >= claw.userData.maxA) {
@@ -471,7 +465,7 @@ function pickUp() {
 }
 
 function lift() {
-    var claw = crane.userData.top.userData.car.userData.claw;
+    let claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.up = true;
 
     if (claw.position.y == claw.userData.maxH) {
@@ -481,12 +475,12 @@ function lift() {
 }
 
 function rotate() {
-    var craneTop = crane.userData.top;
-    var claw = craneTop.userData.car.userData.claw;
+    let craneTop = crane.userData.top;
+    let claw = craneTop.userData.car.userData.claw;
     craneTop.userData.rotateRight = true;
 
-    var clawPos = claw.getWorldPosition(new THREE.Vector3());
-    var slope = (crane.position.z - container.position.z) / (crane.position.x - container.position.x);
+    let clawPos = claw.getWorldPosition(new THREE.Vector3());
+    let slope = (crane.position.z - container.position.z) / (crane.position.x - container.position.x);
     if (Math.abs(clawPos.z - slope*clawPos.x) < 2 && clawPos.z > 0) {
         craneTop.userData.rotateRight = false;
         nextPhase()
@@ -494,12 +488,12 @@ function rotate() {
 }
 
 function slide() {
-    var car = crane.userData.top.userData.car;
-    var claw = car.userData.claw;
+    let car = crane.userData.top.userData.car;
+    let claw = car.userData.claw;
 
-    var clawPos = claw.getWorldPosition(new THREE.Vector3());
-    var dist1 = crane.position.distanceToSquared(container.position);
-    var dist2 = new THREE.Vector3(crane.position.x, clawPos.y, crane.position.z).distanceToSquared(clawPos);
+    let clawPos = claw.getWorldPosition(new THREE.Vector3());
+    let dist1 = crane.position.distanceToSquared(container.position);
+    let dist2 = new THREE.Vector3(crane.position.x, clawPos.y, crane.position.z).distanceToSquared(clawPos);
     if (dist1 < dist2) {
         car.userData.slideBack = true;
     } else {
@@ -514,7 +508,7 @@ function slide() {
 }
 
 function descend() {
-    var claw = crane.userData.top.userData.car.userData.claw;
+    let claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.down = true;
 
     if (claw.position.y == claw.userData.minH) {
@@ -524,7 +518,7 @@ function descend() {
 }
 
 function drop() {
-    var claw = crane.userData.top.userData.car.userData.claw;
+    let claw = crane.userData.top.userData.car.userData.claw;
     claw.userData.open = true;
 
     if (THREE.MathUtils.radToDeg(claw.userData.f3.rotation.x) <= claw.userData.minA) {
@@ -571,7 +565,7 @@ function toogleWireframe() {
 }
 
 function updateHUDText() {
-    var hudText = document.getElementById('hudText');
+    let hudText = document.getElementById('hudText');
     hudText.innerHTML = '<p>Press 7 to toggle wireframe mode</p>' +
                         '<p>Press Q to rotate the crane left</p>' +
                         '<p>Press A to rotate the crane right</p>' +
@@ -588,21 +582,21 @@ function updatePressingKeys(key, clear) {
     key = key.toUpperCase();
 
     if (clear) {
-        var i = pressedKeys.indexOf(key);
+        let i = pressedKeys.indexOf(key);
         delete pressedKeys[i];
     } else if (!pressedKeys.includes(key)) {
         pressedKeys.push(key);
     }
 
-    var pressingKeys = document.getElementById('pressingKeys');
+    let pressingKeys = document.getElementById('pressingKeys');
     pressingKeys.innerHTML = "";
-    for (var k in pressedKeys) {
+    for (let k in pressedKeys) {
         pressingKeys.innerHTML += pressedKeys[k] + ' ';
     }
 }
 
 function createHUD() {
-    var hud = document.createElement('div');
+    let hud = document.createElement('div');
     hud.id = 'hud';
     hud.style.position = 'fixed';
     hud.style.top = '10px';
@@ -612,10 +606,10 @@ function createHUD() {
     hud.style.borderRadius = '5px';
     hud.style.fontFamily = 'Arial, sans-serif';
 
-    var hudText = document.createElement('div');
+    let hudText = document.createElement('div');
     hudText.id = 'hudText';
     hudText.style.fontSize = '13px';
-    var pressingKeys = document.createElement('div');
+    let pressingKeys = document.createElement('div');
     pressingKeys.id = 'pressingKeys';
     pressingKeys.style.fontSize = '13px';
 
@@ -657,10 +651,10 @@ function init() {
 /* ANIMATION CYCLE */
 /////////////////////
 function scaleCable(oldClaw_posY) {
-    var car_posY = crane.userData.top.userData.car.getWorldPosition(new THREE.Vector3()).y;
-    var claw_posY = crane.userData.top.userData.car.userData.claw.getWorldPosition(new THREE.Vector3()).y;
-    var oldScale = crane.userData.top.userData.car.userData.claw.userData.cable.scale.y;
-    var cable = crane.userData.top.userData.car.userData.claw.userData.cable;
+    let car_posY = crane.userData.top.userData.car.getWorldPosition(new THREE.Vector3()).y;
+    let claw_posY = crane.userData.top.userData.car.userData.claw.getWorldPosition(new THREE.Vector3()).y;
+    let oldScale = crane.userData.top.userData.car.userData.claw.userData.cable.scale.y;
+    let cable = crane.userData.top.userData.car.userData.claw.userData.cable;
 
     // Calculate new center: Claw - Car / 2
     cable.position.y = -(claw_posY - car_posY)/2;
@@ -688,9 +682,9 @@ function animate() {
 
     const dt = clock.getDelta();
 
-    var craneTop = crane.userData.top;
-    var car = craneTop.userData.car;
-    var claw = car.userData.claw;
+    let craneTop = crane.userData.top;
+    let car = craneTop.userData.car;
+    let claw = car.userData.claw;
 
     if (craneTop.userData.rotateLeft) {
         craneTop.rotation.y += 1*dt;
@@ -711,7 +705,7 @@ function animate() {
     }
 
     if (claw.userData.up) {
-        var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y;
+        let oldPosition = claw.getWorldPosition(new THREE.Vector3()).y;
         claw.position.y += 25*dt;
 
         if (claw.position.y > claw.userData.maxH) claw.position.y = claw.userData.maxH;
@@ -719,7 +713,7 @@ function animate() {
         scaleCable(oldPosition);
     }
     if (claw.userData.down) {
-        var oldPosition = claw.getWorldPosition(new THREE.Vector3()).y;
+        let oldPosition = claw.getWorldPosition(new THREE.Vector3()).y;
         claw.position.y -= 25*dt;
 
         if (claw.position.y < claw.userData.minH) claw.position.y = claw.userData.minH;
@@ -888,6 +882,7 @@ function onKeyUp(e){
 
     updatePressingKeys(e.key, true);
 }
+
 
 init();
 update();
