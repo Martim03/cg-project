@@ -443,8 +443,8 @@ function drop() {
     if (THREE.MathUtils.radToDeg(claw.userData.f3.rotation.x) <= claw.userData.minA) {
         claw.userData.open = false;
 
-        scene.add(claw.userData.piece);
-        claw.userData.piece.position.set(container.position.x, 0, container.position.z);
+        container.add(claw.userData.piece);
+        claw.userData.piece.position.y += 6;
         claw.userData.piece = null;
         nextPhase()
     }
@@ -460,14 +460,14 @@ function nextPhase() {
 
 function update(){
     'use strict';
-    
+
+    animate();
     checkCollisions();
 
     if (crane.userData.playingAnimation) {
         phases[currentPhase].action();
     }
 
-    animate();
     render();
     requestAnimationFrame(update);
 }
