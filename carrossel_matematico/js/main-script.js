@@ -14,6 +14,7 @@ var currentCamera, cam1, cam2, cam3, cam4;
 var ring1, ring2, ring3, cylinder, skydome, Mobius;
 var ambientLight, directionalLight;
 var ring1Materials, ring2Materials, ring3Materials, CylinderMaterials, MobiusMaterials, ParametricsMaterials;
+var clock = new THREE.Clock();
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -172,9 +173,8 @@ function createRing(x, y, z, innerRadius, outerRadius, height, material) {
     var ring = createObject(geometry, material, new THREE.Vector3(x, y, z), scene);
     ring.rotateX(degToRad(90));
     
-    ring.userData.up = false;
-    ring.userData.down = false;
-    ring.userData.step = 0.5;
+    ring.userData.up = true;
+    ring.userData.moving = false;
     ring.userData.min = y;
     ring.userData.max = 40;
     ring.userData.iRadius = innerRadius;
@@ -295,14 +295,15 @@ var cylinderParametric = function(u, v, target) {
 }
 
 //NOT WORKING
-var mobiusParametric = function(u, v, target) {
-    const phi = u * Math.PI * 2;
-    const majorRadius = 4;
-    const minorRadius = 1;
-
-    const x = (majorRadius + minorRadius * Math.cos(v * Math.PI)) * Math.cos(phi);
-    const y = (majorRadius + minorRadius * Math.cos(v * Math.PI)) * Math.sin(phi);
-    const z = minorRadius * Math.sin(v * Math.PI);
+var mobiusParametric = function (u, v, target) {
+    u = u * Math.PI * 2;  // Parameter u ranges from 0 to 2π
+    v = v * 2 * Math.PI;        // Parameter t ranges from -1 to 1
+    
+    const a = 5;  // Radius of the Möbius strip
+    const half_width = 3;
+    const x = (a + half_width*Math.cos(v/2))*Math.cos(u);
+    const y = (a + half_width*Math.cos(v/2))*Math.sin(u);
+    const z = half_width*Math.sin(v/2);
 
     target.set(x, y, z);
 }
@@ -361,7 +362,7 @@ function createPointLight(x, y, z) {
 }
 
 function createMobius(x, y, z) {
-    var geometry = new ParametricGeometry(mobiusParametric, 50, 50);
+    var geometry = new ParametricGeometry(mobiusParametric, 100, 100);
     Mobius = createObject(geometry, ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z), scene);
     Mobius.rotateX(degToRad(90));
     Mobius.rotateZ(degToRad(90));
@@ -392,7 +393,7 @@ function createSkyDome(x, y, z) {
     loader.setCrossOrigin('anonymous');
     const texture = loader.load('./js/frame_louco.png');
 
-    const geometry = new THREE.SphereGeometry(50, 50, 40);
+    const geometry = new THREE.SphereGeometry(500, 500, 400);
     const material = new THREE.MeshBasicMaterial({
         map: texture,
         side: THREE.BackSide  // Render the inside of the sphere
@@ -423,28 +424,8 @@ function handleCollisions(){
 ////////////
 /* UPDATE */
 ////////////
-function rotateParametrics(ring) {
-    'use strict';
-
-    var vel = 0.01;
-
-    for (var p in ring.userData.parametrics) {
-        ring.userData.parametrics[p].rotation.x += vel;
-        vel += 0.01;
-    }
-}
-
 function update(){
     'use strict';
-
-    cylinder.rotateY(degToRad(1));
-    ring1.rotateZ(degToRad(0.5));
-    ring2.rotateZ(degToRad(-0.7));
-    ring3.rotateZ(degToRad(1.5));
-
-    rotateParametrics(ring1);
-    rotateParametrics(ring2);
-    rotateParametrics(ring3);
 }
 
 /////////////
@@ -500,31 +481,63 @@ function onSessionEnd() {
 /////////////////////
 /* ANIMATION CYCLE */
 /////////////////////
+
+function moveRing(ring, dt) {
+    if (ring.userData.up) {
+        ring.position.y += 40 * dt;
+
+        if (ring.position.y > ring.userData.max) {
+            ring.position.y = ring.userData.max;
+            ring.userData.up = false;
+        }
+    } else {
+        ring.position.y -= 40 * dt;
+
+        if (ring.position.y < ring.userData.min) {
+            ring.position.y = ring.userData.min;
+            ring.userData.up = true;
+        }
+    }
+}
+
+function rotateParametrics(ring, dt) {
+    'use strict';
+
+    var vel = 1 * dt;
+
+    for (var p in ring.userData.parametrics) {
+        ring.userData.parametrics[p].rotation.x += vel;
+        vel += 1 * dt;
+    }
+}
+
 function animate() {
     'use strict';
+    const dt = clock.getDelta();
 
     update();
 
-    if (ring1.userData.up && ring1.position.y <= ring1.userData.max) {
-        ring1.position.y += ring1.userData.step;
-    } 
-    if (ring1.userData.down && ring1.position.y >= ring1.userData.min) {
-        ring1.position.y -= ring1.userData.step;
+    if (ring1.userData.moving) {
+        moveRing(ring1, dt);
     }
 
-    if (ring2.userData.up && ring2.position.y <= ring2.userData.max) {
-        ring2.position.y += ring2.userData.step;
-    }
-    if (ring2.userData.down && ring2.position.y >= ring2.userData.min) {
-        ring2.position.y -= ring2.userData.step;
+    if (ring2.userData.moving) {
+        moveRing(ring2, dt);
     }
 
-    if (ring3.userData.up && ring3.position.y <= ring3.userData.max) {
-        ring3.position.y += ring3.userData.step;
+    if (ring3.userData.moving) {
+        moveRing(ring3, dt);
     }
-    if (ring3.userData.down && ring3.position.y >= ring3.userData.min) {
-        ring3.position.y -= ring3.userData.step;
-    }
+
+    
+    cylinder.rotation.y = 1 * dt;
+    ring1.rotation.z += 1 * dt;
+    ring2.rotation.z += 1 * dt;
+    ring3.rotation.z += 1 * dt;
+
+    rotateParametrics(ring1, dt);
+    rotateParametrics(ring2, dt);
+    rotateParametrics(ring3, dt);
 
     renderer.setAnimationLoop(render);
 
@@ -539,7 +552,19 @@ function onResize() {
     'use strict';
     
     renderer.setSize(window.innerWidth, window.innerHeight);
-
+    
+    if(window.innerHeight > 0 && window.innerWidth > 0) {
+        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
+        cam1.aspect = window.innerWidth/window.innerHeight;
+        cam1.updateProjectionMatrix();
+        cam2.aspect = window.innerWidth/window.innerHeight;
+        cam2.updateProjectionMatrix();
+        cam3.aspect = window.innerWidth/window.innerHeight;
+        cam3.updateProjectionMatrix();
+        cam4.aspect = window.innerWidth/window.innerHeight;
+        cam4.updateProjectionMatrix();
+    }
 }
 
 ///////////////////////
@@ -550,22 +575,13 @@ function onKeyDown(e) {
 
     switch (e.key) {
         case "1":
-            ring1.userData.up = true;
+            ring1.userData.moving = true;
             break;
         case "2":
-            ring2.userData.up = true;
+            ring2.userData.moving = true;
             break;
         case "3":
-            ring3.userData.up = true;
-            break;
-        case "4":
-            ring1.userData.down = true;
-            break;
-        case "5":
-            ring2.userData.down = true;
-            break;
-        case "6":
-            ring3.userData.down = true;
+            ring3.userData.moving = true;
             break;
         case "D":
         case "d":
@@ -622,22 +638,13 @@ function onKeyUp(e){
 
     switch (e.key) {
         case "1":
-            ring1.userData.up = false;
+            ring1.userData.moving = false;
             break;
         case "2":
-            ring2.userData.up = false;
+            ring2.userData.moving = false;
             break;
         case "3":
-            ring3.userData.up = false;
-            break;
-        case "4":
-            ring1.userData.down = false;
-            break;
-        case "5":
-            ring2.userData.down = false;
-            break;
-        case "6":
-            ring3.userData.down = false;
+            ring3.userData.moving = false;
             break;
         }
 }
