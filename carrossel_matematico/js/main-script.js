@@ -3,8 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import * as Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import { degToRad } from 'three/src/math/MathUtils.js';
+import { degToRad, randInt } from 'three/src/math/MathUtils.js';
 import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
+import { ParametricGeometries } from 'three/addons/geometries/ParametricGeometries.js';
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -25,7 +26,7 @@ function createScene(){
     scene = new THREE.Scene();
 
     createCarousell(0, 0, 0);
-    //createSkyDome(0, 0, 0);
+    createSkyDome(0, 0, 0);
 }
 
 //////////////////////
@@ -67,9 +68,12 @@ function addAmbientLight() {
 
 function addDirectionalLight() {
     directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(50, 50, 50);
+    directionalLight.position.set(0, 50, 50);
     directionalLight.castShadow = true;
     scene.add(directionalLight);
+
+    //const helper = new THREE.DirectionalLightHelper(directionalLight, 10);
+    //scene.add(helper);
 }
 
 function toggleDirectionalLight() {
@@ -91,10 +95,10 @@ function createObject(geom, matr, position, parent) {
 
 function createMaterial(color) {
     var list = {
-        "Lambert": new THREE.MeshLambertMaterial({ color: color }),
-        "Phong": new THREE.MeshPhongMaterial({ color: color }),
-        "Toon": new THREE.MeshToonMaterial({ color: color }),
-        "Normal": new THREE.MeshNormalMaterial()
+        "Lambert": new THREE.MeshLambertMaterial({ color: color, side: THREE.DoubleSide}),
+        "Phong": new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide}),
+        "Toon": new THREE.MeshToonMaterial({ color: color, side: THREE.DoubleSide}),
+        "Normal": new THREE.MeshNormalMaterial({side: THREE.DoubleSide})
     }
 
     return list;
@@ -240,7 +244,6 @@ var kleinParametric = function (u, v, target) {
     target.set(x, y, z);
 }
 
-//KINDA WORKING
 var coneParametric = function(u, v, target) {
     var radius = 2; 
     var height = 5
@@ -252,7 +255,6 @@ var coneParametric = function(u, v, target) {
     target.set(x, y, z);
 }
 
-// KINDA WORKING
 var taperedCylinderParametric = function(u, v, target) {
     const baseRadius = 0.8;
     const topRadius = 1.5;
@@ -267,7 +269,6 @@ var taperedCylinderParametric = function(u, v, target) {
     target.set(x, y, z);
 }
 
-// KINDA WORKING
 var ruledHyperboloid = function(u, v, target) {
     const a = 0.1;
     const b = 0.1;
@@ -282,7 +283,6 @@ var ruledHyperboloid = function(u, v, target) {
     target.set(x, y, z);
   }
 
-//KINDA WORKING
 var cylinderParametric = function(u, v, target) {
     const radius = 1;
     const height = 3;
@@ -309,27 +309,38 @@ var mobiusParametric = function (u, v, target) {
 }
 
 function createSpotlight(position, target, obj) {
-    var spotlight = new THREE.SpotLight(0xffffff, 1);
+    var spotlight = new THREE.SpotLight(0xffffff, 5);
 
     spotlight.position.set(position.x, position.y, position.z);
-    spotlight.target.position.set(target.position);
-    //spotlight.angle = Math.PI / 4;
+    spotlight.target.position.set(target.x, target.y, target.z);
 
     obj.add(spotlight);
+    obj.add(spotlight.target);
+
+    //var helper = new THREE.SpotLightHelper(spotlight);
+    //obj.add(helper);
 
     return spotlight;
 }
 
-function createParemetrics(ring) {
-    'use strict';
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
 
-    var angleStep = Math.PI / 4;
+function createParametrics(ring) {
+    'use strict';
 
     var parametricFunctions = [sphereParametric, torusParametric, taperedCylinderParametric, coneParametric, 
                                 kleinParametric, cylinderParametric, ruledHyperboloid, twistedTorusParametric];
 
-    for (var i = 0; i < 8; i++) {
-        var angle = i * angleStep;
+    parametricFunctions = shuffleArray(parametricFunctions);
+
+    for (var i = 0; i < parametricFunctions.length; i++) {
+        var angle = i * (2*Math.PI/parametricFunctions.length);
 
         var x = ring.position.x + Math.cos(angle) * (ring.userData.iRadius + (ring.userData.oRadius - ring.userData.iRadius) / 2);
         var y = ring.position.z + Math.sin(angle) * (ring.userData.iRadius + (ring.userData.oRadius - ring.userData.iRadius) / 2);
@@ -340,7 +351,9 @@ function createParemetrics(ring) {
         var obj = createObject(geometry, ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z), ring);
         ring.userData.parametrics.push(obj);
 
-        var spot = createSpotlight(new THREE.Vector3(x, ring.position.y/2, z), new THREE.Vector3(x, y, z), ring);
+        obj.userData.axis = randInt(1, 3);
+
+        var spot = createSpotlight(new THREE.Vector3(x, z+5, y), new THREE.Vector3(x, z, y), ring);
         ring.userData.spotlights.push(spot);
     }
 }
@@ -351,38 +364,75 @@ function createRings(x, y, z) {
     ring3Materials = createMaterial(0xff8c00);
     ring1 = createRing(x, y, z, 5, 10, 5, ring1Materials["Lambert"]);
     ring2 = createRing(x, y, z, 10, 15, 5, ring2Materials["Lambert"]);
-    ring3 = createRing(x, y, z,15, 20, 5, ring3Materials["Lambert"]);
+    ring3 = createRing(x, y, z, 15, 20, 5, ring3Materials["Lambert"]);
 }
 
-function createPointLight(x, y, z) {
-    const light = new THREE.PointLight(0x00ff00, 1);
+
+function createPointLight(obj, x, y, z) {
+    const light = new THREE.PointLight(0xffffff, 5);
     light.position.set(x, y, z);
-    scene.add(light);
+    obj.add(light);
+
+    //const helper = new THREE.PointLightHelper(light, 1);
+    //obj.add(helper);
+
     return light;
 }
 
+
 function createMobius(x, y, z) {
-    var geometry = new ParametricGeometry(mobiusParametric, 100, 100);
-    Mobius = createObject(geometry, ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z), scene);
-    Mobius.rotateX(degToRad(90));
-    Mobius.rotateZ(degToRad(90));
+    const segments = 100;
+    const scale = 5;
+    const vertices = [];
+    const indices = [];
+
+    for (let i = 0; i <= segments; i++) {
+        const u = (i / segments) * Math.PI * 2;
+
+        for (let v = -1; v <= 1; v += 2) {
+            const px = scale * (Math.cos(u) * (1 + (v / 2) * Math.cos(u / 2)));
+            const py = scale * (Math.sin(u) * (1 + (v / 2) * Math.cos(u / 2)));
+            const pz = scale * ((v / 2) * Math.sin(u / 2));
+
+            vertices.push(px, py, pz);
+        }
+    }
+
+    for (let i = 0; i < segments; i++) {
+        const a = i * 2 ;
+        const b = a + 1;
+        const c = a + 2;
+        const d = a + 3;
+
+        indices.push(a, b, d);
+        indices.push(a, d, c);
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    const material = createMaterial(0xff0000)["Lambert"];
+    const mobius = createObject(geometry, material, new THREE.Vector3(x, y, z), scene);
+    mobius.rotateX(degToRad(90));
 
     for (let i = 0; i < 8; i++) {
-        var t = (i / 8) * Math.PI * 2;
-        var x = Math.cos(t) * 4;
-        var y = 0;
-        var z = Math.sin(t) * 4;
-    
-        createPointLight(x, y, z);
+        const t = (i / 8) * Math.PI * 2;
+        const lightX = Math.cos(t) * scale;
+        const lightY = 0;
+        const lightZ = Math.sin(t) * scale;
+
+        createPointLight(mobius, lightX, lightY, lightZ);
     }
 }
 
 function createCarousell(x, y, z) {
     createCylinder(x, y, z);
     createRings(x, y, z);
-    createParemetrics(ring1);
-    createParemetrics(ring2);
-    createParemetrics(ring3);
+    createParametrics(ring1);
+    createParametrics(ring2);
+    createParametrics(ring3);
     createMobius(x, y + 20, z);
 }
 
@@ -393,7 +443,7 @@ function createSkyDome(x, y, z) {
     loader.setCrossOrigin('anonymous');
     const texture = loader.load('./js/frame_louco.png');
 
-    const geometry = new THREE.SphereGeometry(500, 500, 400);
+    const geometry = new THREE.SphereGeometry(100);
     const material = new THREE.MeshBasicMaterial({
         map: texture,
         side: THREE.BackSide  // Render the inside of the sphere
@@ -401,6 +451,7 @@ function createSkyDome(x, y, z) {
 
     skydome = new THREE.Mesh(geometry, material);
     skydome.position.set(x, y, z);
+    skydome.rotateY(160);
 
     scene.add(skydome);
 }
@@ -503,11 +554,18 @@ function moveRing(ring, dt) {
 function rotateParametrics(ring, dt) {
     'use strict';
 
-    var vel = 1 * dt;
-
     for (var p in ring.userData.parametrics) {
-        ring.userData.parametrics[p].rotation.x += vel;
-        vel += 1 * dt;
+        switch (ring.userData.parametrics[p].userData.axis) {
+            case 1:
+                ring.userData.parametrics[p].rotation.x += 2.5 * dt;
+                break;
+            case 2:
+                ring.userData.parametrics[p].rotation.y += 2.5 * dt;
+                break;
+            case 3:
+                ring.userData.parametrics[p].rotation.z += 2.5 * dt;
+                break;
+        }
     }
 }
 
@@ -554,8 +612,8 @@ function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     
     if(window.innerHeight > 0 && window.innerWidth > 0) {
-        camera.aspect = window.innerWidth/window.innerHeight;
-        camera.updateProjectionMatrix();
+        //camera.aspect = window.innerWidth/window.innerHeight;
+        //camera.updateProjectionMatrix();
         cam1.aspect = window.innerWidth/window.innerHeight;
         cam1.updateProjectionMatrix();
         cam2.aspect = window.innerWidth/window.innerHeight;
