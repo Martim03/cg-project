@@ -14,8 +14,17 @@ var camera, scene, renderer;
 var currentCamera, cam1, cam2, cam3, cam4;
 var ring1, ring2, ring3, cylinder, skydome, mobius;
 var ambientLight, directionalLight, lighting = true;
-var ring1Materials, ring2Materials, ring3Materials, CylinderMaterials, MobiusMaterials, ParametricsMaterials, currentMaterial;
+var ring1Materials, ring2Materials, ring3Materials, CylinderMaterials, MobiusMaterials, ParametricsMaterials, currentMaterial = "Lambert";
 var clock = new THREE.Clock();
+
+const measurements = {
+    cylinder: {radius: 5, height: 30},
+    ring1: {oRadius: 10, iRadius: 5, height: 5},
+    ring2: {oRadius: 15, iRadius: 10, height: 5},
+    ring3: {oRadius: 20, iRadius: 15, height: 5},
+    skydome: {radius: 100},
+    mobius: {flight: 15, scale: 10},
+}
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -36,8 +45,8 @@ function createCameras() {
     'use strict';
 
     cam1 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam1.position.set(70, 70, 0); 
-    cam1.lookAt(scene.position);
+    cam1.position.set(70, 60, 0); 
+    cam1.lookAt(scene.position.x, scene.position.y+20, scene.position.z);
     scene.add(cam1);
 
     cam2 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
@@ -79,6 +88,7 @@ function addDirectionalLight() {
 function toggleDirectionalLight() {
     directionalLight.visible = !directionalLight.visible;
 }
+
 ////////////////////////
 /* CREATE OBJECT3D(S) */
 ////////////////////////
@@ -94,6 +104,8 @@ function createObject(geom, matr, position, parent) {
 }
 
 function createMaterial(color) {
+    //let lambert = new THREE.MeshLambertMaterial({ color: color, side: THREE.DoubleSide})
+    //lambert.shading = THREE.FlatShading;
     var list = {
         "Lambert": new THREE.MeshLambertMaterial({ color: color, side: THREE.DoubleSide}),
         "Phong": new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide}),
@@ -103,6 +115,21 @@ function createMaterial(color) {
     }
 
     return list;
+}
+
+function getRandomHexColor() {
+    const randomColorComponent = () => Math.floor(Math.random() * 256);
+    let red, green, blue;
+
+    do {
+        red = randomColorComponent();
+        green = randomColorComponent();
+        blue = randomColorComponent();
+    } while (red + green + blue < 383);
+
+    const toHex = (component) => component.toString(16).padStart(2, '0');
+
+    return `#${toHex(red)}${toHex(green)}${toHex(blue)}`
 }
 
 function switchMaterial(materialType) {
@@ -141,44 +168,43 @@ function toggleSpotlights(visible) {
     for (s in ring3.userData.spotlights) {
         ring3.userData.spotlights[s].visible = visible;
     }
-    for (s in mobius.userData.spotlights) {
-        ring3.userData.spotlights[s].visible = visible;
+    for (s in mobius.userData.pointlights) {
+        mobius.userData.pointlights[s].visible = visible;
     }
 }
 
 function createCylinder(x, y, z) {
     'use strict';
 
-    var geometry = new THREE.CylinderGeometry(5, 5, 5);
-    CylinderMaterials = createMaterial(0x00ff00);
-    cylinder = createObject(geometry, CylinderMaterials["Lambert"], new THREE.Vector3(x, y, z), scene);
+    var geometry = new THREE.CylinderGeometry(measurements.cylinder.radius, measurements.cylinder.radius, measurements.cylinder.height);
+    CylinderMaterials = createMaterial(getRandomHexColor());
+    cylinder = createObject(geometry, CylinderMaterials["Lambert"], new THREE.Vector3(x, y+measurements.cylinder.height/2, z), scene);
 }
 
-function createRing(x, y, z, innerRadius, outerRadius, height, material) {
+function createRing(x, y, z, ringMeasurements, material) {
     'use strict';
 
     var shape = new THREE.Shape();
-    shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
+    shape.absarc(0, 0, ringMeasurements.oRadius, 0, Math.PI * 2, false);
     var hole = new THREE.Path();
-    hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
+    hole.absarc(0, 0, ringMeasurements.iRadius, 0, Math.PI * 2, true);
     shape.holes.push(hole);
 
     var extrudeSettings = {
         steps: 2, // Number of steps along the extrusion path
-        depth: height, // The depth of the extrusion
+        depth: ringMeasurements.height, // The depth of the extrusion
         bevelEnabled: false, // Disable beveling to maintain a sharp edge
     };
 
     var geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     var ring = createObject(geometry, material, new THREE.Vector3(x, y, z), scene);
     ring.rotateX(degToRad(90));
+    ring.position.y += ringMeasurements.height;
     
     ring.userData.up = true;
     ring.userData.moving = false;
-    ring.userData.min = y;
-    ring.userData.max = 40;
-    ring.userData.iRadius = innerRadius;
-    ring.userData.oRadius = outerRadius;
+    ring.userData.min = ring.position.y;
+    ring.userData.max = measurements.cylinder.height;
     ring.userData.parametrics = [];
     ring.userData.spotlights = [];
 
@@ -305,7 +331,7 @@ var mobiusParametric = function (u, v, target) {
 }
 
 function createSpotlight(position, obj) {
-    var spotlight = new THREE.SpotLight(0xffffff, 2);
+    var spotlight = new THREE.SpotLight(0xffffff, 10);
 
     obj.add(spotlight);
 
@@ -326,7 +352,7 @@ function shuffleArray(array) {
     return array;
 }
 
-function createParametrics(ring) {
+function createParametrics(ring, color, ringMeasurements) {
     'use strict';
 
     var parametricFunctions = [sphereParametric, torusParametric, taperedCylinderParametric, coneParametric, 
@@ -336,31 +362,30 @@ function createParametrics(ring) {
 
     for (var i = 0; i < parametricFunctions.length; i++) {
         var angle = i * (2*Math.PI/parametricFunctions.length);
-
-        var x = ring.position.x + Math.cos(angle) * (ring.userData.iRadius + (ring.userData.oRadius - ring.userData.iRadius) / 2);
-        var y = ring.position.z + Math.sin(angle) * (ring.userData.iRadius + (ring.userData.oRadius - ring.userData.iRadius) / 2);
+        
+        var x = ring.position.x + Math.cos(angle) * (ringMeasurements.iRadius + (ringMeasurements.oRadius - ringMeasurements.iRadius) / 2);
+        var y = ring.position.z + Math.sin(angle) * (ringMeasurements.iRadius + (ringMeasurements.oRadius - ringMeasurements.iRadius) / 2);
         var z = ring.position.y/2 - 5;
 
         var geometry = new ParametricGeometry(parametricFunctions[i], 50, 50);
-        ParametricsMaterials = createMaterial(0xff0000);
+        ParametricsMaterials = createMaterial(color);
         var obj = createObject(geometry, ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z), ring);
         ring.userData.parametrics.push(obj);
 
-        obj.userData.axis = randInt(1, 3);
+        obj.rotateX(randInt(0, Math.PI*2));
         
-        var geom = new THREE.BoxGeometry(2, 2, 2);
-        var spot = createSpotlight(new THREE.Vector3(x, y, z+4), new THREE.Vector3(x, y, z-5), ring);
+        var spot = createSpotlight(new THREE.Vector3(x, y, z+2), ring);
         ring.userData.spotlights.push(spot);
     }
 }
 
 function createRings(x, y, z) {
-    ring1Materials = createMaterial(0xffffff);
-    ring2Materials = createMaterial(0xffd700);
-    ring3Materials = createMaterial(0xff8c00);
-    ring1 = createRing(x, y, z, 5, 10, 5, ring1Materials["Lambert"]);
-    ring2 = createRing(x, y, z, 10, 15, 5, ring2Materials["Lambert"]);
-    ring3 = createRing(x, y, z, 15, 20, 5, ring3Materials["Lambert"]);
+    ring1Materials = createMaterial(getRandomHexColor());
+    ring2Materials = createMaterial(getRandomHexColor());
+    ring3Materials = createMaterial(getRandomHexColor());
+    ring1 = createRing(x, y, z, measurements.ring1, ring1Materials["Lambert"]);
+    ring2 = createRing(x, y, z, measurements.ring2, ring2Materials["Lambert"]);
+    ring3 = createRing(x, y, z, measurements.ring3, ring3Materials["Lambert"]);
 }
 
 
@@ -378,7 +403,6 @@ function createPointLight(obj, x, y, z) {
 
 function createMobius(x, y, z) {
     const segments = 100;
-    const scale = 10;
     const vertices = [];
     const indices = [];
 
@@ -386,9 +410,9 @@ function createMobius(x, y, z) {
         const u = (i / segments) * Math.PI * 2;
 
         for (let v = -1; v <= 1; v += 2) {
-            const px = scale * (Math.cos(u) * (1 + (v / 2) * Math.cos(u / 2)));
-            const py = scale * (Math.sin(u) * (1 + (v / 2) * Math.cos(u / 2)));
-            const pz = scale * ((v / 2) * Math.sin(u / 2));
+            const px = measurements.mobius.scale * (Math.cos(u) * (1 + (v / 2) * Math.cos(u / 2)));
+            const py = measurements.mobius.scale * (Math.sin(u) * (1 + (v / 2) * Math.cos(u / 2)));
+            const pz = measurements.mobius.scale * ((v / 2) * Math.sin(u / 2));
 
             vertices.push(px, py, pz);
         }
@@ -409,29 +433,31 @@ function createMobius(x, y, z) {
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    MobiusMaterials = createMaterial(0xff0000);
+    MobiusMaterials = createMaterial(getRandomHexColor());
     mobius = createObject(geometry, MobiusMaterials["Lambert"], new THREE.Vector3(x, y, z), scene);
     mobius.rotateX(degToRad(90));
-    mobius.userData.spotlights = [];
+    mobius.userData.pointlights = [];
 
     for (let i = 0; i < 8; i++) {
         const t = (i / 8) * Math.PI * 2;
-        const lightX = Math.cos(t) * scale + 1;
-        const lightY = Math.sin(t) * scale + 1;
+        const lightX = Math.cos(t) * measurements.mobius.scale + 1;
+        const lightY = Math.sin(t) * measurements.mobius.scale + 1;
         const lightZ = 0;
 
         var light = createPointLight(mobius, lightX, lightY, lightZ);
-        mobius.userData.spotlights.push(light);
+        mobius.userData.pointlights.push(light);
     }
 }
 
 function createCarousell(x, y, z) {
     createCylinder(x, y, z);
     createRings(x, y, z);
-    createParametrics(ring1);
-    createParametrics(ring2);
-    createParametrics(ring3);
-    createMobius(x, y + 50, z);
+
+    let parametricColor = getRandomHexColor();
+    createParametrics(ring1, parametricColor, measurements.ring1);
+    createParametrics(ring2, parametricColor, measurements.ring2);
+    createParametrics(ring3, parametricColor, measurements.ring3);
+    createMobius(x, measurements.cylinder.height+measurements.mobius.flight, z);
 }
 
 function createSkyDome(x, y, z) {
@@ -441,18 +467,20 @@ function createSkyDome(x, y, z) {
     loader.setCrossOrigin('anonymous');
     const texture = loader.load('./js/frame_louco.png');
 
-    const geometry = new THREE.SphereGeometry(100);
+    const geometry = new THREE.SphereGeometry(100, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+
     const material = new THREE.MeshBasicMaterial({
         map: texture,
-        side: THREE.BackSide  // Render the inside of the sphere
+        side: THREE.BackSide
     });
 
-    skydome = new THREE.Mesh(geometry, material);
+    const skydome = new THREE.Mesh(geometry, material);
     skydome.position.set(x, y, z);
-    skydome.rotateY(160);
+    skydome.rotateY(Math.PI / 2);
 
     scene.add(skydome);
 }
+
 
 //////////////////////
 /* CHECK COLLISIONS */
@@ -475,6 +503,10 @@ function handleCollisions(){
 ////////////
 function update(){
     'use strict';
+
+    animate();
+    render();
+    requestAnimationFrame(update);
 }
 
 /////////////
@@ -515,8 +547,6 @@ function init() {
 
     renderer.xr.addEventListener('sessionstart', onSessionStart);
     renderer.xr.addEventListener('sessionend', onSessionEnd);
-
-    animate();
 }
 
 function onSessionStart() {
@@ -553,25 +583,13 @@ function rotateParametrics(ring, dt) {
     'use strict';
 
     for (var p in ring.userData.parametrics) {
-        switch (ring.userData.parametrics[p].userData.axis) {
-            case 1:
-                ring.userData.parametrics[p].rotation.x += 2.5 * dt;
-                break;
-            case 2:
-                ring.userData.parametrics[p].rotation.y += 2.5 * dt;
-                break;
-            case 3:
-                ring.userData.parametrics[p].rotation.z += 2.5 * dt;
-                break;
-        }
+        ring.userData.parametrics[p].rotation.y += 2.5 * dt;
     }
 }
 
 function animate() {
     'use strict';
     const dt = clock.getDelta();
-
-    update();
 
     if (ring1.userData.moving) {
         moveRing(ring1, dt);
@@ -594,11 +612,6 @@ function animate() {
     rotateParametrics(ring1, dt);
     rotateParametrics(ring2, dt);
     rotateParametrics(ring3, dt);
-
-    renderer.setAnimationLoop(render);
-
-    requestAnimationFrame(animate);
-    render();
 }
 
 ////////////////////////////
@@ -706,6 +719,6 @@ function onKeyUp(e){
 }
 
 init();
-animate();
+update();
 
 console.log("STARTING...")
