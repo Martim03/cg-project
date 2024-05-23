@@ -12,9 +12,9 @@ import { ParametricGeometries } from 'three/addons/geometries/ParametricGeometri
 //////////////////////
 var camera, scene, renderer;
 var currentCamera, cam1, cam2, cam3, cam4;
-var ring1, ring2, ring3, cylinder, skydome, Mobius;
-var ambientLight, directionalLight;
-var ring1Materials, ring2Materials, ring3Materials, CylinderMaterials, MobiusMaterials, ParametricsMaterials;
+var ring1, ring2, ring3, cylinder, skydome, mobius;
+var ambientLight, directionalLight, lighting = true;
+var ring1Materials, ring2Materials, ring3Materials, CylinderMaterials, MobiusMaterials, ParametricsMaterials, currentMaterial;
 var clock = new THREE.Clock();
 
 /////////////////////
@@ -51,7 +51,7 @@ function createCameras() {
     scene.add(cam3);
 
     cam4 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam4.position.set(0, 50, 0); 
+    cam4.position.set(0, 60, 0); 
     cam4.lookAt(scene.position);
     scene.add(cam4);
 
@@ -98,14 +98,18 @@ function createMaterial(color) {
         "Lambert": new THREE.MeshLambertMaterial({ color: color, side: THREE.DoubleSide}),
         "Phong": new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide}),
         "Toon": new THREE.MeshToonMaterial({ color: color, side: THREE.DoubleSide}),
-        "Normal": new THREE.MeshNormalMaterial({side: THREE.DoubleSide})
+        "Normal": new THREE.MeshNormalMaterial({side: THREE.DoubleSide}),
+        "Basic": new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide})
     }
 
     return list;
 }
 
 function switchMaterial(materialType) {
+    currentMaterial = materialType;
+    if (!lighting) { materialType = "Basic"; }
     cylinder.userData.mesh.material = CylinderMaterials[materialType];
+    mobius.userData.mesh.material = MobiusMaterials[materialType];
     ring1.userData.mesh.material = ring1Materials[materialType];
     ring2.userData.mesh.material = ring2Materials[materialType];
     ring3.userData.mesh.material = ring3Materials[materialType];
@@ -121,24 +125,13 @@ function switchMaterial(materialType) {
     }
 }
 
-function toggleLighting() {   
-    cylinder.userData.mesh.material.lights = !cylinder.userData.mesh.material.lights;
-    ring1.userData.mesh.material.lights = !ring1.userData.mesh.material.lights;
-    ring2.userData.mesh.material.lights = !ring2.userData.mesh.material.lights;
-    ring3.userData.mesh.material.lights = !ring3.userData.mesh.material.lights;
+function toggleLighting() {
+    lighting = !lighting;
 
-    for (var p in ring1.userData.parametrics) {
-        ring1.userData.parametrics[p].userData.mesh.material.lights = !ring1.userData.parametrics[p].userData.mesh.material.lights;
-    }
-    for (p in ring2.userData.parametrics) {
-        ring2.userData.parametrics[p].userData.mesh.material.lights = !ring2.userData.parametrics[p].userData.mesh.material.lights;
-    }
-    for (p in ring3.userData.parametrics) {
-        ring3.userData.parametrics[p].userData.mesh.material.lights = !ring3.userData.parametrics[p].userData.mesh.material.lights;
-    }
+    switchMaterial(currentMaterial);
 }
 
-function toogleSpotlights(visible) {
+function toggleSpotlights(visible) {
     for (var s in ring1.userData.spotlights) {
         ring1.userData.spotlights[s].visible = visible;
     }
@@ -146,6 +139,9 @@ function toogleSpotlights(visible) {
         ring2.userData.spotlights[s].visible = visible;
     }
     for (s in ring3.userData.spotlights) {
+        ring3.userData.spotlights[s].visible = visible;
+    }
+    for (s in mobius.userData.spotlights) {
         ring3.userData.spotlights[s].visible = visible;
     }
 }
@@ -308,17 +304,16 @@ var mobiusParametric = function (u, v, target) {
     target.set(x, y, z);
 }
 
-function createSpotlight(position, target, obj) {
-    var spotlight = new THREE.SpotLight(0xffffff, 5);
-
-    spotlight.position.set(position.x, position.y, position.z);
-    spotlight.target.position.set(target.x, target.y, target.z);
+function createSpotlight(position, obj) {
+    var spotlight = new THREE.SpotLight(0xffffff, 2);
 
     obj.add(spotlight);
-    obj.add(spotlight.target);
+
+    spotlight.position.set(position.x, position.y, position.z);
+    spotlight.angle = Math.PI;
 
     //var helper = new THREE.SpotLightHelper(spotlight);
-    //obj.add(helper);
+    //scene.add(helper);
 
     return spotlight;
 }
@@ -352,8 +347,9 @@ function createParametrics(ring) {
         ring.userData.parametrics.push(obj);
 
         obj.userData.axis = randInt(1, 3);
-
-        var spot = createSpotlight(new THREE.Vector3(x, z+5, y), new THREE.Vector3(x, z, y), ring);
+        
+        var geom = new THREE.BoxGeometry(2, 2, 2);
+        var spot = createSpotlight(new THREE.Vector3(x, y, z+4), new THREE.Vector3(x, y, z-5), ring);
         ring.userData.spotlights.push(spot);
     }
 }
@@ -369,7 +365,7 @@ function createRings(x, y, z) {
 
 
 function createPointLight(obj, x, y, z) {
-    const light = new THREE.PointLight(0xffffff, 5);
+    const light = new THREE.PointLight(0xffffff, 10);
     light.position.set(x, y, z);
     obj.add(light);
 
@@ -382,7 +378,7 @@ function createPointLight(obj, x, y, z) {
 
 function createMobius(x, y, z) {
     const segments = 100;
-    const scale = 5;
+    const scale = 10;
     const vertices = [];
     const indices = [];
 
@@ -413,17 +409,19 @@ function createMobius(x, y, z) {
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    const material = createMaterial(0xff0000)["Lambert"];
-    const mobius = createObject(geometry, material, new THREE.Vector3(x, y, z), scene);
+    MobiusMaterials = createMaterial(0xff0000);
+    mobius = createObject(geometry, MobiusMaterials["Lambert"], new THREE.Vector3(x, y, z), scene);
     mobius.rotateX(degToRad(90));
+    mobius.userData.spotlights = [];
 
     for (let i = 0; i < 8; i++) {
         const t = (i / 8) * Math.PI * 2;
-        const lightX = Math.cos(t) * scale;
-        const lightY = 0;
-        const lightZ = Math.sin(t) * scale;
+        const lightX = Math.cos(t) * scale + 1;
+        const lightY = Math.sin(t) * scale + 1;
+        const lightZ = 0;
 
-        createPointLight(mobius, lightX, lightY, lightZ);
+        var light = createPointLight(mobius, lightX, lightY, lightZ);
+        mobius.userData.spotlights.push(light);
     }
 }
 
@@ -433,7 +431,7 @@ function createCarousell(x, y, z) {
     createParametrics(ring1);
     createParametrics(ring2);
     createParametrics(ring3);
-    createMobius(x, y + 20, z);
+    createMobius(x, y + 50, z);
 }
 
 function createSkyDome(x, y, z) {
@@ -667,11 +665,11 @@ function onKeyDown(e) {
             break;
         case 'P':
         case 'p':
-            toogleSpotlights(true);
+            toggleSpotlights(true);
             break;
         case 'S':
         case 's':
-            toogleSpotlights(false);
+            toggleSpotlights(false);
             break;
         case "7":
             currentCamera = cam1;
