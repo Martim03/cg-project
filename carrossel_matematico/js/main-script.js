@@ -299,13 +299,13 @@ var cylinderParametric = function(u, v, target) {
 }
 
 function createSpotlight(position, obj) {
-    var spotlight = new THREE.SpotLight(0xffffff, 5);
+    var spotlight = new THREE.SpotLight(0xffffff, 1);
 
     spotlight.position.set(position.x, position.y, position.z);
 
     var target = new THREE.Object3D();
     target.position.set(position.x, position.y, position.z-1);
-    spotlight.angle = Math.PI/2;
+    spotlight.angle = Math.PI;
     
     obj.add(target);
     spotlight.target = target;
