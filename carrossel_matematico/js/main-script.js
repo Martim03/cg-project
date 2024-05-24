@@ -299,7 +299,7 @@ var cylinderParametric = function(u, v, target) {
 }
 
 function createSpotlight(position, obj) {
-    var spotlight = new THREE.SpotLight(0xffffff, 2);
+    var spotlight = new THREE.SpotLight(0xffffff, 0.5);
 
     obj.add(spotlight);
 
@@ -361,7 +361,7 @@ function createRings(x, y, z) {
 
 
 function createPointLight(obj, x, y, z) {
-    const light = new THREE.PointLight(0xffffff, 4);
+    const light = new THREE.PointLight(0xffffff, 2);
     light.position.set(x, y, z);
     obj.add(light);
 
@@ -517,14 +517,14 @@ function onSessionEnd() {
 
 function moveRing(ring, dt) {
     if (ring.userData.up) {
-        ring.position.y += 40 * dt;
+        ring.position.y += 8 * dt;
 
         if (ring.position.y > ring.userData.max) {
             ring.position.y = ring.userData.max;
             ring.userData.up = false;
         }
     } else {
-        ring.position.y -= 40 * dt;
+        ring.position.y -= 8 * dt;
 
         if (ring.position.y < ring.userData.min) {
             ring.position.y = ring.userData.min;
