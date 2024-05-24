@@ -16,6 +16,10 @@ var ambientLight, directionalLight, lighting = true;
 var ring1Materials, ring2Materials, ring3Materials, CylinderMaterials, MobiusMaterials, ParametricsMaterials, currentMaterial = "Lambert";
 var clock = new THREE.Clock();
 
+const resetRenderer = () => renderer.setSize(window.innerWidth, window.innerHeight);
+const setupRenderer = () => { resetRenderer(); document.body.appendChild(renderer.domElement); renderer.xr.enabled = true; }
+
+
 const measurements = {
     cylinder: {radius: 1, height: 6},
     ring1: {oRadius: 2, iRadius: 1, height: 1},
@@ -464,7 +468,6 @@ function update(){
 
     animate();
     render();
-    //requestAnimationFrame(update);
 }
 
 /////////////
@@ -483,11 +486,10 @@ function init() {
     'use strict';
 
     renderer = new THREE.WebGLRenderer({antialias: true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.xr.enabled = true;
     renderer.setClearColor(0xADD8E6);
-    document.body.appendChild(renderer.domElement);
+    setupRenderer();    
     document.body.appendChild(VRButton.createButton(renderer));
 
     createScene();
@@ -657,7 +659,6 @@ function onKeyUp(e){
 }
 
 init();
-//update();
 renderer?.setAnimationLoop(update);
 
 console.log("STARTING...")
