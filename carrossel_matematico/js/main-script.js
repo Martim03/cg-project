@@ -1,11 +1,7 @@
 import * as THREE from 'three';
 import { MathUtils } from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
-import * as Stats from 'three/addons/libs/stats.module.js';
-import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
-import { ParametricGeometries } from 'three/addons/geometries/ParametricGeometries.js';
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -66,9 +62,6 @@ function addDirectionalLight() {
     directionalLight.position.set(0, 50, 50);
     directionalLight.castShadow = true;
     scene.add(directionalLight);
-
-    //const helper = new THREE.DirectionalLightHelper(directionalLight, 10);
-    //scene.add(helper);
 }
 
 function toggleDirectionalLight() {
@@ -90,8 +83,6 @@ function createObject(geom, matr, position, parent) {
 }
 
 function createMaterial(color) {
-    //let lambert = new THREE.MeshLambertMaterial({ color: color, side: THREE.DoubleSide})
-    //lambert.shading = THREE.FlatShading;
     var list = {
         "Lambert": new THREE.MeshLambertMaterial({ color: color, side: THREE.DoubleSide}),
         "Phong": new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide}),
@@ -352,7 +343,6 @@ function createParametrics(ring, color, ringMeasurements) {
 
         obj.rotateX(MathUtils.randInt(0, Math.PI*2));
         
-        //createObject(new THREE.BoxGeometry(0.2,0.2,0.2), ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z+0.5), ring);
         var spot = createSpotlight(new THREE.Vector3(x, y, z+0.45), ring);
         ring.userData.spotlights.push(spot);
     }
@@ -372,9 +362,6 @@ function createPointLight(obj, x, y, z) {
     const light = new THREE.PointLight(0xffffff, 2);
     light.position.set(x, y, z);
     obj.add(light);
-
-    //const helper = new THREE.PointLightHelper(light, 1);
-    //obj.add(helper);
 
     return light;
 }
