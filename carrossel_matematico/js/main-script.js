@@ -299,18 +299,21 @@ var cylinderParametric = function(u, v, target) {
 }
 
 function createSpotlight(position, obj) {
-    var spotlight = new THREE.SpotLight(0xffffff, 0.5);
-
-    obj.add(spotlight);
+    var spotlight = new THREE.SpotLight(0xffffff, 5);
 
     spotlight.position.set(position.x, position.y, position.z);
-    spotlight.angle = Math.PI;
 
-    //var helper = new THREE.SpotLightHelper(spotlight);
-    //scene.add(helper);
-
+    var target = new THREE.Object3D();
+    target.position.set(position.x, position.y, position.z-1);
+    spotlight.angle = Math.PI/2;
+    
+    obj.add(target);
+    spotlight.target = target;
+    
+    obj.add(spotlight);
     return spotlight;
 }
+
 
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -345,7 +348,8 @@ function createParametrics(ring, color, ringMeasurements) {
 
         obj.rotateX(MathUtils.randInt(0, Math.PI*2));
         
-        var spot = createSpotlight(new THREE.Vector3(x, y, z+0.4), ring);
+        //createObject(new THREE.BoxGeometry(0.2,0.2,0.2), ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z+0.5), ring);
+        var spot = createSpotlight(new THREE.Vector3(x, y, z+0.5), ring);
         ring.userData.spotlights.push(spot);
     }
 }
