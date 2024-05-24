@@ -1,9 +1,9 @@
 import * as THREE from 'three';
+import { MathUtils } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import * as Stats from 'three/addons/libs/stats.module.js';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import { degToRad, randInt } from 'three/src/math/MathUtils.js';
 import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
 import { ParametricGeometries } from 'three/addons/geometries/ParametricGeometries.js';
 
@@ -11,7 +11,6 @@ import { ParametricGeometries } from 'three/addons/geometries/ParametricGeometri
 /* GLOBAL VARIABLES */
 //////////////////////
 var camera, scene, renderer;
-var currentCamera, cam1, cam2, cam3, cam4;
 var ring1, ring2, ring3, cylinder, skydome, mobius;
 var ambientLight, directionalLight, lighting = true;
 var ring1Materials, ring2Materials, ring3Materials, CylinderMaterials, MobiusMaterials, ParametricsMaterials, currentMaterial = "Lambert";
@@ -44,34 +43,17 @@ function createScene(){
 function createCameras() {
     'use strict';
 
-    cam1 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam1.position.set(70, 60, 0); 
-    cam1.lookAt(scene.position.x, scene.position.y+20, scene.position.z);
-    scene.add(cam1);
-
-    cam2 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam2.position.set(50, 0, 0); 
-    cam2.lookAt(scene.position);
-    scene.add(cam2);
-
-    cam3 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam3.position.set(0, 0, 50); 
-    cam3.lookAt(scene.position);
-    scene.add(cam3);
-
-    cam4 = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    cam4.position.set(0, 60, 0); 
-    cam4.lookAt(scene.position);
-    scene.add(cam4);
-
-    currentCamera = cam1;
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
+    camera.position.set(70, 60, 0); 
+    camera.lookAt(scene.position.x, scene.position.y+20, scene.position.z);
+    scene.add(camera);
 }
 
 /////////////////////
 /* CREATE LIGHT(S) */
 /////////////////////
 function addAmbientLight() {
-    ambientLight = new THREE.AmbientLight(0xffa500, 0.3);
+    ambientLight = new THREE.AmbientLight(0xffa500, 0.5);
     scene.add(ambientLight);
 }
 
@@ -198,7 +180,7 @@ function createRing(x, y, z, ringMeasurements, material) {
 
     var geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     var ring = createObject(geometry, material, new THREE.Vector3(x, y, z), scene);
-    ring.rotateX(degToRad(90));
+    ring.rotateX(Math.PI/2);
     ring.position.y += ringMeasurements.height;
     
     ring.userData.up = true;
@@ -372,7 +354,7 @@ function createParametrics(ring, color, ringMeasurements) {
         var obj = createObject(geometry, ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z), ring);
         ring.userData.parametrics.push(obj);
 
-        obj.rotateX(randInt(0, Math.PI*2));
+        obj.rotateX(MathUtils.randInt(0, Math.PI*2));
         
         var spot = createSpotlight(new THREE.Vector3(x, y, z+2), ring);
         ring.userData.spotlights.push(spot);
@@ -435,7 +417,7 @@ function createMobius(x, y, z) {
 
     MobiusMaterials = createMaterial(getRandomHexColor());
     mobius = createObject(geometry, MobiusMaterials["Lambert"], new THREE.Vector3(x, y, z), scene);
-    mobius.rotateX(degToRad(90));
+    mobius.rotateX(Math.PI/2);
     mobius.userData.pointlights = [];
 
     for (let i = 0; i < 8; i++) {
@@ -474,28 +456,11 @@ function createSkyDome(x, y, z) {
         side: THREE.BackSide
     });
 
-    const skydome = new THREE.Mesh(geometry, material);
+    skydome = new THREE.Mesh(geometry, material);
     skydome.position.set(x, y, z);
-    skydome.rotateY(Math.PI / 2);
+    skydome.rotateY(Math.PI);
 
     scene.add(skydome);
-}
-
-
-//////////////////////
-/* CHECK COLLISIONS */
-//////////////////////
-function checkCollisions(){
-    'use strict';
-
-}
-
-///////////////////////
-/* HANDLE COLLISIONS */
-///////////////////////
-function handleCollisions(){
-    'use strict';
-
 }
 
 ////////////
@@ -506,7 +471,7 @@ function update(){
 
     animate();
     render();
-    requestAnimationFrame(update);
+    //requestAnimationFrame(update);
 }
 
 /////////////
@@ -515,7 +480,7 @@ function update(){
 function render() {
     'use strict';
 
-    renderer.render(scene, currentCamera);
+    renderer.render(scene, camera);
 }
 
 ////////////////////////////////
@@ -604,7 +569,7 @@ function animate() {
     }
 
     
-    cylinder.rotation.y = 1 * dt;
+    cylinder.rotation.y += 1 * dt;
     ring1.rotation.z += 1 * dt;
     ring2.rotation.z += 1 * dt;
     ring3.rotation.z += 1 * dt;
@@ -623,16 +588,8 @@ function onResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     
     if(window.innerHeight > 0 && window.innerWidth > 0) {
-        //camera.aspect = window.innerWidth/window.innerHeight;
-        //camera.updateProjectionMatrix();
-        cam1.aspect = window.innerWidth/window.innerHeight;
-        cam1.updateProjectionMatrix();
-        cam2.aspect = window.innerWidth/window.innerHeight;
-        cam2.updateProjectionMatrix();
-        cam3.aspect = window.innerWidth/window.innerHeight;
-        cam3.updateProjectionMatrix();
-        cam4.aspect = window.innerWidth/window.innerHeight;
-        cam4.updateProjectionMatrix();
+        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
     }
 }
 
@@ -684,18 +641,6 @@ function onKeyDown(e) {
         case 's':
             toggleSpotlights(false);
             break;
-        case "7":
-            currentCamera = cam1;
-            break;
-        case "8":
-            currentCamera = cam2;
-            break;
-        case "9":
-            currentCamera = cam3;
-            break;
-        case "0":
-            currentCamera = cam4;
-            break;
         }
 }
 
@@ -719,6 +664,7 @@ function onKeyUp(e){
 }
 
 init();
-update();
+//update();
+renderer?.setAnimationLoop(update);
 
 console.log("STARTING...")
