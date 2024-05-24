@@ -377,7 +377,7 @@ function createPointLight(obj, x, y, z) {
 
 
 function createMobius(x, y, z) {
-    const segments = 100;
+    const segments = 30;
     const vertices = [];
     const indices = [];
 
