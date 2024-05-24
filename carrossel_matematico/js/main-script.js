@@ -17,12 +17,12 @@ var ring1Materials, ring2Materials, ring3Materials, CylinderMaterials, MobiusMat
 var clock = new THREE.Clock();
 
 const measurements = {
-    cylinder: {radius: 5, height: 30},
-    ring1: {oRadius: 10, iRadius: 5, height: 5},
-    ring2: {oRadius: 15, iRadius: 10, height: 5},
-    ring3: {oRadius: 20, iRadius: 15, height: 5},
-    skydome: {radius: 100},
-    mobius: {flight: 15, scale: 10},
+    cylinder: {radius: 1, height: 6},
+    ring1: {oRadius: 2, iRadius: 1, height: 1},
+    ring2: {oRadius: 3, iRadius: 2, height: 1},
+    ring3: {oRadius: 4, iRadius: 3, height: 1},
+    skydome: {radius: 20},
+    mobius: {flight: 3, scale: 2},
 }
 
 /////////////////////
@@ -44,8 +44,8 @@ function createCameras() {
     'use strict';
 
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight);
-    camera.position.set(70, 60, 0); 
-    camera.lookAt(scene.position.x, scene.position.y+20, scene.position.z);
+    camera.position.set(14, 12, 0); 
+    camera.lookAt(scene.position.x, scene.position.y+4, scene.position.z);
     scene.add(camera);
 }
 
@@ -298,22 +298,8 @@ var cylinderParametric = function(u, v, target) {
     target.set(x, y, z);
 }
 
-//NOT WORKING
-var mobiusParametric = function (u, v, target) {
-    u = u * Math.PI * 2;  // Parameter u ranges from 0 to 2π
-    v = v * 2 * Math.PI;        // Parameter t ranges from -1 to 1
-    
-    const a = 5;  // Radius of the Möbius strip
-    const half_width = 3;
-    const x = (a + half_width*Math.cos(v/2))*Math.cos(u);
-    const y = (a + half_width*Math.cos(v/2))*Math.sin(u);
-    const z = half_width*Math.sin(v/2);
-
-    target.set(x, y, z);
-}
-
 function createSpotlight(position, obj) {
-    var spotlight = new THREE.SpotLight(0xffffff, 10);
+    var spotlight = new THREE.SpotLight(0xffffff, 2);
 
     obj.add(spotlight);
 
@@ -347,16 +333,19 @@ function createParametrics(ring, color, ringMeasurements) {
         
         var x = ring.position.x + Math.cos(angle) * (ringMeasurements.iRadius + (ringMeasurements.oRadius - ringMeasurements.iRadius) / 2);
         var y = ring.position.z + Math.sin(angle) * (ringMeasurements.iRadius + (ringMeasurements.oRadius - ringMeasurements.iRadius) / 2);
-        var z = ring.position.y/2 - 5;
+        var z = ring.position.y/2 - 1;
 
         var geometry = new ParametricGeometry(parametricFunctions[i], 50, 50);
         ParametricsMaterials = createMaterial(color);
         var obj = createObject(geometry, ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z), ring);
+        obj.scale.x = obj.scale.x/5;
+        obj.scale.y = obj.scale.y/5;
+        obj.scale.z = obj.scale.z/5;
         ring.userData.parametrics.push(obj);
 
         obj.rotateX(MathUtils.randInt(0, Math.PI*2));
         
-        var spot = createSpotlight(new THREE.Vector3(x, y, z+2), ring);
+        var spot = createSpotlight(new THREE.Vector3(x, y, z+0.4), ring);
         ring.userData.spotlights.push(spot);
     }
 }
@@ -372,7 +361,7 @@ function createRings(x, y, z) {
 
 
 function createPointLight(obj, x, y, z) {
-    const light = new THREE.PointLight(0xffffff, 10);
+    const light = new THREE.PointLight(0xffffff, 4);
     light.position.set(x, y, z);
     obj.add(light);
 
@@ -422,8 +411,8 @@ function createMobius(x, y, z) {
 
     for (let i = 0; i < 8; i++) {
         const t = (i / 8) * Math.PI * 2;
-        const lightX = Math.cos(t) * measurements.mobius.scale + 1;
-        const lightY = Math.sin(t) * measurements.mobius.scale + 1;
+        const lightX = Math.cos(t) * measurements.mobius.scale;
+        const lightY = Math.sin(t) * measurements.mobius.scale;
         const lightZ = 0;
 
         var light = createPointLight(mobius, lightX, lightY, lightZ);
@@ -449,7 +438,7 @@ function createSkyDome(x, y, z) {
     loader.setCrossOrigin('anonymous');
     const texture = loader.load('./js/frame_louco.png');
 
-    const geometry = new THREE.SphereGeometry(100, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
+    const geometry = new THREE.SphereGeometry(measurements.skydome.radius, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2);
 
     const material = new THREE.MeshBasicMaterial({
         map: texture,
