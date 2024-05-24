@@ -349,7 +349,7 @@ function createParametrics(ring, color, ringMeasurements) {
         obj.rotateX(MathUtils.randInt(0, Math.PI*2));
         
         //createObject(new THREE.BoxGeometry(0.2,0.2,0.2), ParametricsMaterials["Lambert"], new THREE.Vector3(x, y, z+0.5), ring);
-        var spot = createSpotlight(new THREE.Vector3(x, y, z+0.5), ring);
+        var spot = createSpotlight(new THREE.Vector3(x, y, z+0.45), ring);
         ring.userData.spotlights.push(spot);
     }
 }
